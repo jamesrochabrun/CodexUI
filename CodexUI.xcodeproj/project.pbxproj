@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7B305E632ED44753002F5F5F /* CodexSDK */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7B305E462ED44717002F5F5F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = CodexUI;
 			packageProductDependencies = (
+				7B305E632ED44753002F5F5F /* CodexSDK */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 7B305E2F2ED44715002F5F5F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7B305E622ED44753002F5F5F /* XCLocalSwiftPackageReference "../CodexSDK" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
 			projectDirPath = "";
@@ -615,6 +624,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		7B305E622ED44753002F5F5F /* XCLocalSwiftPackageReference "../CodexSDK" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../CodexSDK;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7B305E632ED44753002F5F5F /* CodexSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CodexSDK;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7B305E302ED44715002F5F5F /* Project object */;
 }
