@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7B305E632ED44753002F5F5F /* CodexSDK */; };
+		7B7ADC562ED5762700ADC068 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC552ED5762700ADC068 /* Down */; };
+		7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC582ED5765400ADC068 /* HighlightSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +58,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */,
+				7B7ADC562ED5762700ADC068 /* Down in Frameworks */,
 				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +122,8 @@
 			name = CodexUI;
 			packageProductDependencies = (
 				7B305E632ED44753002F5F5F /* CodexSDK */,
+				7B7ADC552ED5762700ADC068 /* Down */,
+				7B7ADC582ED5765400ADC068 /* HighlightSwift */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -203,6 +209,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				7B305E622ED44753002F5F5F /* XCLocalSwiftPackageReference "../CodexSDK" */,
+				7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */,
+				7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
@@ -399,13 +407,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CodexUI/CodexUI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = CQ45U4X9K3;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -443,13 +451,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CodexUI/CodexUI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = CQ45U4X9K3;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -632,10 +640,39 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jamesrochabrun/Down";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.0;
+			};
+		};
+		7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/appstefan/highlightswift";
+			requirement = {
+				kind = exactVersion;
+				version = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		7B305E632ED44753002F5F5F /* CodexSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CodexSDK;
+		};
+		7B7ADC552ED5762700ADC068 /* Down */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */;
+			productName = Down;
+		};
+		7B7ADC582ED5765400ADC068 /* HighlightSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */;
+			productName = HighlightSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

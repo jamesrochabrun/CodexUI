@@ -1,0 +1,33 @@
+{
+  "originHash" : "96e60e5aa4de31a6fcdd1456d81d358a32b12452fe22de23f07242ab5b0f915e",
+  "pins" : [
+    {
+      "identity" : "down",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jamesrochabrun/Down",
+      "state" : {
+        "revision" : "e1f17ec54dd5a272a15a1f784a4b77f2faf1eb8b",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "highlightswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/appstefan/highlightswift",
+      "state" : {
+        "revision" : "784ca3ccfc8a2cf724fbb2f06cb6ec3329424da3",
+        "version" : "1.1.0"
+      }
+    },
+    {
+      "identity" : "swift-cmark",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-cmark.git",
+      "state" : {
+        "revision" : "5d9bdaa4228b381639fff09403e39a04926e2dbe",
+        "version" : "0.7.1"
+      }
+    }
+  ],
+  "version" : 3
+}
