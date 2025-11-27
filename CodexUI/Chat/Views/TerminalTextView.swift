@@ -12,12 +12,19 @@ import SwiftUI
 struct TerminalStatusView: View {
   let lines: [String]
 
+  @Environment(\.colorScheme) private var colorScheme
+
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
       ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
         terminalLine(line)
       }
     }
+    .padding(.vertical, 12)
+    .padding(.horizontal, 8)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(Color.adaptiveBackground(for: colorScheme))
+    .clipShape(RoundedRectangle(cornerRadius: 8))
   }
 
   @ViewBuilder
@@ -95,14 +102,11 @@ struct BlinkingCursor: View {
       lines: [
         "* Analyzing the codebase structure",
         "  $ git status",
-        "  ✓ exit 0 (54ms)",
         "* Found 15 Swift files",
         "  $ npm install",
-        "  ! exit 1 (120ms)",
       ]
     )
-    .padding()
-    .background(Color.backgroundDark)
   }
+  .padding()
   .frame(width: 500)
 }
