@@ -6,26 +6,26 @@
 import SwiftUI
 
 public struct ChatScreen: View {
-
+  
   @State private var viewModel = ChatViewModel()
   @State private var messageText = ""
   @State private var showingSettings = false
-
+  
   public init() {}
-
+  
   public var body: some View {
     VStack(spacing: 0) {
       messagesListView
         .padding(.bottom, 8)
-
+      
       if viewModel.isLoading {
         loadingIndicator
       }
-
+      
       if let error = viewModel.errorMessage {
         errorBanner(error)
       }
-
+      
       ChatInputView(
         text: $messageText,
         isLoading: viewModel.isLoading,
@@ -62,15 +62,13 @@ public struct ChatScreen: View {
       }
     }
   }
-
+  
   private var messagesListView: some View {
     ScrollViewReader { scrollView in
       List {
-        if viewModel.messages.isEmpty {
-          welcomeView
-            .listRowSeparator(.hidden)
-        }
-
+        welcomeView
+          .listRowSeparator(.hidden)
+        
         ForEach(viewModel.messages) { message in
           ChatMessageView(message: message)
             .listRowSeparator(.hidden)
@@ -89,48 +87,73 @@ public struct ChatScreen: View {
       }
     }
   }
-
+  
   private var welcomeView: some View {
-    VStack(spacing: 12) {
-      Image(systemName: "bubble.left.and.bubble.right")
-        .font(.system(size: 48))
-        .foregroundStyle(Color.brandPrimary)
-
-      Text("CodexUI Chat")
-        .font(.title2)
-        .fontWeight(.medium)
-
-      if viewModel.hasValidProjectPath {
-        HStack(spacing: 4) {
-          Image(systemName: "folder.fill")
-            .foregroundStyle(Color.brandPrimary)
-          Text(viewModel.projectPath)
-            .lineLimit(1)
-            .truncationMode(.middle)
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-
-        Text("Send a message to start chatting")
-          .font(.body)
+    VStack(alignment: .leading, spacing: 4) {
+      // Header: >_ CodexUI (v1.0.0)
+      HStack(spacing: 4) {
+        Text(">_")
+          .foregroundStyle(Color.brandPrimary)
+        Text("CodexUI")
+          .fontWeight(.semibold)
+        Text("(\(appVersion))")
           .foregroundStyle(.secondary)
-      } else {
+      }
+      
+      // Model line
+      HStack(spacing: 0) {
+        Text("model:")
+          .foregroundStyle(.secondary)
+          .frame(width: 80, alignment: .leading)
+        Text(viewModel.model)
+          .foregroundStyle(Color.brandPrimary)
+      }
+      
+      // Directory line
+      HStack(spacing: 0) {
+        Text("directory:")
+          .foregroundStyle(.secondary)
+          .frame(width: 80, alignment: .leading)
+        Text(shortenedProjectPath)
+          .lineLimit(1)
+          .truncationMode(.middle)
+      }
+      
+      // Settings prompt if no valid path
+      if !viewModel.hasValidProjectPath {
         Text("Select a working directory in Settings to get started")
-          .font(.body)
           .foregroundStyle(.secondary)
-
+          .padding(.top, 4)
+        
         Button("Open Settings") {
           showingSettings = true
         }
         .buttonStyle(.borderedProminent)
         .tint(.brandPrimary)
-        .padding(.top, 8)
+        .padding(.top, 2)
       }
     }
-    .frame(maxWidth: .infinity)
-    .padding(.vertical, 40)
-  }
+    .font(.system(.callout, design: .monospaced))
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .overlay(
+      RoundedRectangle(cornerSize: .init(width: 8, height: 8))
+        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+    )
+    .padding(.horizontal, 6)
 
+  }
+  
+  private var appVersion: String {
+    Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+  }
+  
+  private var shortenedProjectPath: String {
+    let path = viewModel.projectPath
+    guard !path.isEmpty else { return "~" }
+    return path.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+  }
+  
   private var loadingIndicator: some View {
     HStack(spacing: 8) {
       ProgressView()
@@ -143,7 +166,7 @@ public struct ChatScreen: View {
     .padding(.horizontal)
     .padding(.bottom, 8)
   }
-
+  
   private func errorBanner(_ message: String) -> some View {
     HStack {
       Image(systemName: "exclamationmark.triangle.fill")

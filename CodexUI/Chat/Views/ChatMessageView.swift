@@ -37,6 +37,7 @@ struct ChatMessageView: View {
     .onChange(of: message.content) { _, newContent in
       handleContentChange(newContent: newContent)
     }
+    .background(message.role == .user ? .black.opacity(0.1) : .clear)
   }
   
   @ViewBuilder
@@ -75,12 +76,6 @@ struct ChatMessageView: View {
       // Assistant message with markdown rendering
       if !assistantContent.isEmpty {
         HStack(alignment: .top, spacing: 0) {
-          Text("◆")
-            .font(.system(size: 13, design: .monospaced))
-            .foregroundStyle(Color.Terminal.assistant)
-            .frame(width: 16, alignment: .leading)
-            .padding(.top, 8)
-          
           // Use TextFormatter for markdown
           if let formatter = textFormatter {
             MessageTextFormatterView(
@@ -88,7 +83,7 @@ struct ChatMessageView: View {
               message: message,
               fontSize: 14,
               horizontalPadding: 0,
-              maxWidth: maxWidth - 16
+              maxWidth: maxWidth
             )
           } else {
             Text(assistantContent)

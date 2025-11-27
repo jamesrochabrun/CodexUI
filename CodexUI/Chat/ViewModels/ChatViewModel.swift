@@ -29,6 +29,10 @@ public final class ChatViewModel {
     settings.isValidGitRepo(settings.projectPath)
   }
 
+  var model: String {
+    "gpt-5.1-codex-max"
+  }
+
   // MARK: - Private
 
   private var client: CodexExecClient {
