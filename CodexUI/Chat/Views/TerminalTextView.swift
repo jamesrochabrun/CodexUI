@@ -25,6 +25,12 @@ struct TerminalStatusView: View {
     let parsed = parsePrefix(line)
 
     HStack(alignment: .top, spacing: 0) {
+      // Indentation for child events (commands under reasoning)
+      if parsed.isIndented {
+        Text("  ")
+          .foregroundStyle(.clear)
+      }
+
       // Prefix with color
       Text(parsed.prefix)
         .foregroundStyle(parsed.color)
@@ -37,10 +43,14 @@ struct TerminalStatusView: View {
     .font(.system(size: 13, design: .monospaced))
   }
 
-  /// Parse a line into its prefix and content, returning the appropriate color
-  private func parsePrefix(_ line: String) -> (prefix: String, content: String, color: Color) {
+  /// Parse a line into its prefix, content, color, and whether it's indented
+  private func parsePrefix(_ line: String) -> (prefix: String, content: String, color: Color, isIndented: Bool) {
     // Check each prefix pattern (status lines only)
+    // Indented versions must come first to match before non-indented
     let prefixPatterns: [(String, Color)] = [
+      ("  $ ", Color.Terminal.command),   // Indented command execution
+      ("  ✓ ", Color.Terminal.success),   // Indented success
+      ("  ! ", Color.Terminal.error),     // Indented error/failure
       ("* ", Color.Terminal.reasoning),   // Reasoning/thinking
       ("$ ", Color.Terminal.command),     // Command execution
       ("✓ ", Color.Terminal.success),     // Success
@@ -50,12 +60,15 @@ struct TerminalStatusView: View {
     for (prefix, color) in prefixPatterns {
       if line.hasPrefix(prefix) {
         let content = String(line.dropFirst(prefix.count))
-        return (String(prefix.first!), content, color)
+        let isIndented = prefix.hasPrefix("  ")
+        // For indented prefixes, just return the symbol (indentation handled by view)
+        let displayPrefix = isIndented ? String(prefix.trimmingCharacters(in: .whitespaces).first!) : String(prefix.first!)
+        return (displayPrefix, content, color, isIndented)
       }
     }
 
     // No prefix found - return as plain content
-    return (" ", line, .primary)
+    return (" ", line, .primary, false)
   }
 }
 
@@ -81,11 +94,11 @@ struct BlinkingCursor: View {
     TerminalStatusView(
       lines: [
         "* Analyzing the codebase structure",
+        "  $ git status",
+        "  ✓ exit 0 (54ms)",
         "* Found 15 Swift files",
-        "$ git status",
-        "✓ exit 0",
-        "$ npm install",
-        "! exit 1",
+        "  $ npm install",
+        "  ! exit 1 (120ms)",
       ]
     )
     .padding()

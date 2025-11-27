@@ -41,6 +41,14 @@ public final class ChatViewModel {
   private var currentTask: Task<Void, Never>?
   private var hasSession = false
 
+  /// State for parsing stderr during resume sessions
+  private enum StderrParseState {
+    case idle
+    case awaitingReasoning  // After "thinking" line
+    case awaitingCommand    // After "exec" line
+    case collectingOutput   // After command line, collecting output
+  }
+
   // MARK: - Initialization
 
   init() {}
@@ -132,6 +140,7 @@ public final class ChatViewModel {
   private final class StreamBuffer: @unchecked Sendable {
     var stdout = ""
     var stderr = ""
+    var stderrParseState: StderrParseState = .idle
   }
 
   private func streamResponse(prompt: String, messageId: UUID) async {
@@ -220,6 +229,14 @@ public final class ChatViewModel {
             // Collect stderr for fallback display
             if !line.isEmpty {
               buffer.stderr += line + "\n"
+            }
+
+            // When in resume mode (no JSON events), parse stderr for display
+            if self.hasSession && !line.isEmpty {
+              if let displayLine = self.parseStderrLine(line, state: &buffer.stderrParseState) {
+                buffer.stdout += displayLine + "\n"
+                self.updateAssistantMessage(id: messageId, content: buffer.stdout)
+              }
             }
           }
         }
@@ -326,5 +343,109 @@ public final class ChatViewModel {
         return true
       }
     return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  // MARK: - Stderr Parsing (for resume sessions)
+
+  /// Check if a line should be filtered out (CLI banner/metadata)
+  private func shouldFilterLine(_ line: String) -> Bool {
+    let lower = line.lowercased()
+    if lower.contains("openai codex") { return true }
+    if lower.contains("workdir:") { return true }
+    if lower.contains("model:") { return true }
+    if lower.contains("provider:") { return true }
+    if lower.contains("approval:") { return true }
+    if lower.contains("sandbox:") { return true }
+    if lower.contains("reasoning effort") { return true }
+    if lower.contains("reasoning summaries") { return true }
+    if lower.contains("session id:") { return true }
+    if lower.contains("mcp startup") { return true }
+    if line.trimmingCharacters(in: .whitespaces) == "--------" { return true }
+    // Filter out conversation markers
+    if line.trimmingCharacters(in: .whitespaces) == "user" { return true }
+    if line.trimmingCharacters(in: .whitespaces) == "assistant" { return true }
+    return false
+  }
+
+  /// Parse a stderr line and return terminal-formatted output if applicable
+  private func parseStderrLine(_ line: String, state: inout StderrParseState) -> String? {
+    let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+    // Skip CLI banner/metadata lines
+    if shouldFilterLine(trimmed) { return nil }
+
+    // State machine for parsing
+    switch state {
+    case .idle:
+      if trimmed == "thinking" {
+        state = .awaitingReasoning
+        return nil
+      } else if trimmed == "exec" {
+        state = .awaitingCommand
+        return nil
+      }
+      return nil
+
+    case .awaitingReasoning:
+      state = .idle
+      // Reasoning lines often wrapped in **...**
+      let reasoning = trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "*"))
+      return "* \(reasoning)"
+
+    case .awaitingCommand:
+      // Command line format: /bin/zsh -lc 'cmd' in /path succeeded/failed in Xms:
+      if trimmed.contains("succeeded in") || trimmed.contains("failed in") {
+        let shortCmd = extractAndShortenCommand(from: trimmed)
+        let success = trimmed.contains("succeeded")
+        let status = extractStatus(from: trimmed)
+        state = success ? .collectingOutput : .idle
+        return "  $ \(shortCmd)\n  \(success ? "✓" : "!") \(status)"
+      }
+      state = .idle
+      return nil
+
+    case .collectingOutput:
+      // Skip command output to keep display clean (per user preference)
+      // Just watch for next marker
+      if trimmed == "thinking" {
+        state = .awaitingReasoning
+        return nil
+      } else if trimmed == "exec" {
+        state = .awaitingCommand
+        return nil
+      }
+      return nil // Skip detailed command output
+    }
+  }
+
+  /// Extract command from stderr line and shorten it
+  /// Input format: "/bin/zsh -lc 'ls Sources' in /path succeeded in 54ms:"
+  private func extractAndShortenCommand(from line: String) -> String {
+    // Find the command part before " in /"
+    guard let inIndex = line.range(of: " in /") else {
+      return shortenCommand(line)
+    }
+    let commandPart = String(line[..<inIndex.lowerBound])
+    return shortenCommand(commandPart)
+  }
+
+  /// Extract status (succeeded/failed in Xms) from stderr line
+  private func extractStatus(from line: String) -> String {
+    // Find "succeeded in" or "failed in" and extract the timing
+    if let range = line.range(of: "succeeded in ") {
+      let afterSucceeded = line[range.upperBound...]
+      // Extract timing like "54ms:"
+      if let colonIndex = afterSucceeded.firstIndex(of: ":") {
+        return "exit 0 (\(String(afterSucceeded[..<colonIndex])))"
+      }
+      return "exit 0"
+    } else if let range = line.range(of: "failed in ") {
+      let afterFailed = line[range.upperBound...]
+      if let colonIndex = afterFailed.firstIndex(of: ":") {
+        return "exit 1 (\(String(afterFailed[..<colonIndex])))"
+      }
+      return "exit 1"
+    }
+    return ""
   }
 }

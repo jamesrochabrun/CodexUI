@@ -113,7 +113,8 @@ struct ChatMessageView: View {
         // Strip prefix, accumulate for markdown rendering
         assistantContent += String(line.dropFirst(2)) + "\n"
       } else if line.hasPrefix("* ") || line.hasPrefix("$ ") ||
-                  line.hasPrefix("✓ ") || line.hasPrefix("! ") {
+                  line.hasPrefix("✓ ") || line.hasPrefix("! ") ||
+                  line.hasPrefix("  $ ") || line.hasPrefix("  ✓ ") || line.hasPrefix("  ! ") {
         statusLines.append(line)
       } else if !line.trimmingCharacters(in: .whitespaces).isEmpty {
         // Non-prefixed content goes to assistant (fallback)
