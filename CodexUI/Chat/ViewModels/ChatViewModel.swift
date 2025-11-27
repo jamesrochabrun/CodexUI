@@ -399,7 +399,8 @@ public final class ChatViewModel {
         let success = trimmed.contains("succeeded")
         let status = extractStatus(from: trimmed)
         state = success ? .collectingOutput : .idle
-        return "  $ \(shortCmd)\n  \(success ? "✓" : "!") \(status)"
+        // To show exit status, use: return "  $ \(shortCmd)\n  \(success ? "✓" : "!") \(status)"
+        return "  $ \(shortCmd)"
       }
       state = .idle
       return nil
