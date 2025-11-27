@@ -124,9 +124,14 @@ public final class ChatViewModel {
     }
   }
 
+  /// Buffer class to hold streaming output (reference type for proper capture in closures)
+  private final class StreamBuffer: @unchecked Sendable {
+    var stdout = ""
+    var stderr = ""
+  }
+
   private func streamResponse(prompt: String, messageId: UUID) async {
-    var stdoutBuffer = ""
-    var stderrBuffer = ""
+    let buffer = StreamBuffer()
 
     do {
       var options = CodexExecOptions()
@@ -138,8 +143,8 @@ public final class ChatViewModel {
       // Full auto mode only on first turn (resume rejects it)
       options.fullAuto = !hasSession
 
-      // Timeout to avoid indefinite hangs
-      options.timeout = 90
+      // Timeout to avoid indefinite hangs (5 minutes for complex queries)
+      options.timeout = 300
 
       // Sandbox/model/changeDirectory only on first turn (resume rejects these flags)
       if !hasSession {
@@ -160,21 +165,57 @@ public final class ChatViewModel {
         Task { @MainActor in
           switch event {
           case .jsonEvent(let json):
-            // Handle agent_message type for streaming text
-            if let text = json.item?.text, json.item?.type == "agent_message" {
-              stdoutBuffer += text + "\n"
-              self.updateAssistantMessage(id: messageId, content: stdoutBuffer)
+
+            // Handle different event types based on (type, item.type)
+            // Terminal-style prefixes: * reasoning, $ command, ✓/! status, ◆ assistant
+            switch (json.type, json.item?.type) {
+            case ("item.completed", "reasoning"):
+              // Show reasoning/thinking steps with * prefix
+              if let text = json.item?.text {
+                let lines = text.components(separatedBy: "\n")
+                  .map { "* \($0)" }
+                  .joined(separator: "\n")
+                buffer.stdout += "\(lines)\n"
+                self.updateAssistantMessage(id: messageId, content: buffer.stdout)
+              }
+
+            case ("item.started", "command_execution"):
+              // Show command starting with $ prefix
+              if let command = json.item?.command {
+                let shortCommand = self.shortenCommand(command)
+                buffer.stdout += "$ \(shortCommand)\n"
+                self.updateAssistantMessage(id: messageId, content: buffer.stdout)
+              }
+
+            case ("item.completed", "command_execution"):
+              // Show command completion with ✓ or ! prefix
+              if let exitCode = json.item?.exitCode {
+                let prefix = exitCode == 0 ? "✓" : "!"
+                buffer.stdout += "\(prefix) exit \(exitCode)\n"
+                self.updateAssistantMessage(id: messageId, content: buffer.stdout)
+              }
+
+            case ("item.completed", "agent_message"):
+              // Final assistant message with ◆ prefix
+              if let text = json.item?.text {
+                buffer.stdout += "◆ \(text)\n"
+                self.updateAssistantMessage(id: messageId, content: buffer.stdout)
+              }
+
+            default:
+              // Ignore thread.started, turn.started, turn.completed, etc.
+              break
             }
 
           case .stdout(let line):
-            // Append stdout lines
-            stdoutBuffer += line + "\n"
-            self.updateAssistantMessage(id: messageId, content: stdoutBuffer)
+            // Append stdout lines (fallback when JSON not available)
+            buffer.stdout += line + "\n"
+            self.updateAssistantMessage(id: messageId, content: buffer.stdout)
 
           case .stderr(let line):
             // Collect stderr for fallback display
             if !line.isEmpty {
-              stderrBuffer += line + "\n"
+              buffer.stderr += line + "\n"
             }
           }
         }
@@ -185,8 +226,8 @@ public final class ChatViewModel {
 
       // Finalize message
       await MainActor.run {
-        let finalOutput = stdoutBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
-        let fallbackLogs = stderrBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalOutput = buffer.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackLogs = buffer.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let cleaned = self.cleanOutput(finalOutput)
         let logsClean = self.cleanOutput(fallbackLogs)
@@ -210,8 +251,8 @@ public final class ChatViewModel {
 
           // Show error with any output collected
           var content = "Error: \(errorMsg)"
-          let outputSoFar = stdoutBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
-          let logs = stderrBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+          let outputSoFar = buffer.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+          let logs = buffer.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
 
           if !outputSoFar.isEmpty {
             content += "\n\nOutput so far:\n\(outputSoFar)"
@@ -244,19 +285,39 @@ public final class ChatViewModel {
     return error.localizedDescription
   }
 
+  /// Shorten a shell command for display (removes /bin/zsh -lc wrapper)
+  private func shortenCommand(_ command: String) -> String {
+    // Commands come as: /bin/zsh -lc "actual command" or /bin/zsh -lc 'actual command'
+    if command.hasPrefix("/bin/zsh -lc ") {
+      var shortened = String(command.dropFirst("/bin/zsh -lc ".count))
+      // Remove surrounding quotes if present
+      if (shortened.hasPrefix("\"") && shortened.hasSuffix("\"")) ||
+         (shortened.hasPrefix("'") && shortened.hasSuffix("'")) {
+        shortened = String(shortened.dropFirst().dropLast())
+      }
+      return shortened
+    }
+    return command
+  }
+
   private func cleanOutput(_ text: String) -> String {
     let lines = text
       .split(separator: "\n", omittingEmptySubsequences: false)
       .map(String.init)
       .filter { line in
         let lower = line.lowercased()
+        // Keep terminal-prefixed lines (*, $, ✓, !, ◆)
+        let terminalPrefixes = ["* ", "$ ", "✓ ", "! ", "◆ "]
+        let hasTerminalPrefix = terminalPrefixes.contains { line.hasPrefix($0) }
+        if hasTerminalPrefix { return true }
+
+        // Filter out CLI banner/metadata lines
         if lower.contains("openai codex") { return false }
         if lower.contains("workdir:") { return false }
         if lower.contains("model:") { return false }
         if lower.contains("provider:") { return false }
         if lower.contains("approval:") { return false }
         if lower.contains("sandbox:") { return false }
-        if lower.contains("reasoning") { return false }
         if lower.trimmingCharacters(in: .whitespacesAndNewlines) == "--------" { return false }
         return true
       }

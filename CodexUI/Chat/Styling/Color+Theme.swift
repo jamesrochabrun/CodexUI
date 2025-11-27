@@ -184,6 +184,20 @@ extension Color {
   }
 }
 
+// MARK: - Terminal UI Colors
+
+extension Color {
+  struct Terminal {
+    static let userPrompt = primaryTeal        // Teal (#14B8A6) - ">" prefix
+    static let reasoning = lightTeal           // Light teal (#5EEAD4) - "*" prefix
+    static let command = deepTeal              // Deep teal (#0D9488) - "$" prefix
+    static let success = ultraLightTeal        // Ultra light (#99F6E4) - "✓" prefix
+    static let error = darkTeal                // Dark teal (#0F766E) - "!" prefix
+    static let assistant = primaryTeal         // Teal (#14B8A6) - "◆" prefix
+    static let output = deepTeal               // Deep teal (#0D9488) - "|" prefix
+  }
+}
+
 // MARK: - Gradients
 
 extension Color {

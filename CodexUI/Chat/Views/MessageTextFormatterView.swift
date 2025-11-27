@@ -98,9 +98,7 @@ struct MessageTextFormatterView: View {
   }
 
   private var messageTint: SwiftUI.Color {
-    message.role == .assistant
-      ? Color.brandSecondary
-      : Color.brandPrimary
+    Color.primaryTeal
   }
 }
 

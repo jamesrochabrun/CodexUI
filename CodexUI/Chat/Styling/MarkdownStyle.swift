@@ -26,8 +26,8 @@ func makeMarkdownStyle(colorScheme: ColorScheme) -> DownStyle {
   style.h2Size = 16
   style.h3Size = 15
   style.codeFont = .monospacedSystemFont(ofSize: 13, weight: .regular)
-  // Use brand secondary (purple) for inline code
-  style.codeColor = Color.brandSecondary.nsColor
+  // Use teal for inline code
+  style.codeColor = Color.primaryTeal.nsColor
   style.quoteColor = .secondaryLabelColor
 
   return style

@@ -6,22 +6,31 @@
 import SwiftUI
 
 struct ChatMessageView: View {
-
+  
   let message: ChatMessage
-
+  
   @Environment(\.colorScheme) private var colorScheme
   @State private var textFormatter: TextFormatter?
-
+  @State private var containerWidth: CGFloat = 0
+  
   var body: some View {
-    GeometryReader { geometry in
-      VStack(alignment: .leading, spacing: 0) {
-        messageContent(maxWidth: geometry.size.width - 24)  // Account for horizontal padding
+    VStack(alignment: .leading, spacing: 0) {
+      // Zero-height GeometryReader to capture width without affecting layout
+      GeometryReader { geometry in
+        Color.clear
+          .onAppear { containerWidth = geometry.size.width }
+          .onChange(of: geometry.size) { _, newSize in
+            containerWidth = newSize.width
+          }
       }
-      .padding(.horizontal, 12)
-      .padding(.vertical, 4)
-      .frame(maxWidth: .infinity, alignment: .leading)
+      .frame(height: 0)
+      
+      // Content determines its own height naturally
+      messageContent(maxWidth: containerWidth - 24)
     }
-    .frame(minHeight: estimatedHeight)
+    .padding(.horizontal, 12)
+    .padding(.vertical, 4)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .onAppear {
       initializeTextFormatter()
     }
@@ -29,7 +38,7 @@ struct ChatMessageView: View {
       handleContentChange(newContent: newContent)
     }
   }
-
+  
   @ViewBuilder
   private func messageContent(maxWidth: CGFloat) -> some View {
     switch message.role {
@@ -39,77 +48,112 @@ struct ChatMessageView: View {
       assistantMessageView(maxWidth: maxWidth)
     }
   }
-
+  
   private var userMessageView: some View {
     HStack(alignment: .top, spacing: 8) {
       Text(">")
-        .font(.system(.body, design: .monospaced))
-        .foregroundStyle(.secondary)
-
+        .font(.system(size: 13, design: .monospaced))
+        .foregroundStyle(Color.Terminal.userPrompt)
+      
       Text(message.content)
-        .font(.body)
+        .font(.system(size: 13, design: .monospaced))
         .textSelection(.enabled)
     }
-    .padding(.vertical, 8)
+    .padding(.vertical, 4)
   }
-
+  
   @ViewBuilder
   private func assistantMessageView(maxWidth: CGFloat) -> some View {
-    if let formatter = textFormatter {
-      MessageTextFormatterView(
-        textFormatter: formatter,
-        message: message,
-        fontSize: 14,
-        horizontalPadding: 0,
-        maxWidth: maxWidth
-      )
-    } else {
-      // Fallback to plain text while formatter initializes
-      Text(message.content)
-        .font(.body)
-        .textSelection(.enabled)
-        .padding(.vertical, 8)
+    let (statusLines, assistantContent) = splitContent(message.content)
+    
+    VStack(alignment: .leading, spacing: 4) {
+      // Terminal-style status lines (reasoning, commands, exit codes)
+      if !statusLines.isEmpty {
+        TerminalStatusView(lines: statusLines)
+      }
+      
+      // Assistant message with markdown rendering
+      if !assistantContent.isEmpty {
+        HStack(alignment: .top, spacing: 0) {
+          Text("◆")
+            .font(.system(size: 13, design: .monospaced))
+            .foregroundStyle(Color.Terminal.assistant)
+            .frame(width: 16, alignment: .leading)
+            .padding(.top, 8)
+          
+          // Use TextFormatter for markdown
+          if let formatter = textFormatter {
+            MessageTextFormatterView(
+              textFormatter: formatter,
+              message: message,
+              fontSize: 14,
+              horizontalPadding: 0,
+              maxWidth: maxWidth - 16
+            )
+          } else {
+            Text(assistantContent)
+              .font(.body)
+              .textSelection(.enabled)
+          }
+        }
+      }
+      
+      // Streaming cursor when no content yet
+      if !message.isComplete && statusLines.isEmpty && assistantContent.isEmpty {
+        BlinkingCursor()
+      }
     }
+    .padding(.vertical, 4)
   }
-
+  
+  // MARK: - Content Splitting
+  
+  /// Split content into status lines (*, $, ✓, !) and assistant content (◆)
+  private func splitContent(_ content: String) -> (statusLines: [String], assistantContent: String) {
+    var statusLines: [String] = []
+    var assistantContent = ""
+    
+    for line in content.components(separatedBy: "\n") {
+      if line.hasPrefix("◆ ") {
+        // Strip prefix, accumulate for markdown rendering
+        assistantContent += String(line.dropFirst(2)) + "\n"
+      } else if line.hasPrefix("* ") || line.hasPrefix("$ ") ||
+                  line.hasPrefix("✓ ") || line.hasPrefix("! ") {
+        statusLines.append(line)
+      } else if !line.trimmingCharacters(in: .whitespaces).isEmpty {
+        // Non-prefixed content goes to assistant (fallback)
+        assistantContent += line + "\n"
+      }
+    }
+    
+    return (statusLines, assistantContent.trimmingCharacters(in: .whitespacesAndNewlines))
+  }
+  
   // MARK: - Private Methods
-
+  
   private func initializeTextFormatter() {
     guard message.role == .assistant else { return }
-
+    
     let formatter = TextFormatter(projectRoot: nil)
-    if !message.content.isEmpty {
-      formatter.ingest(delta: message.content)
+    // Extract only assistant content for the formatter
+    let (_, assistantContent) = splitContent(message.content)
+    if !assistantContent.isEmpty {
+      formatter.ingest(delta: assistantContent)
     }
     textFormatter = formatter
   }
-
+  
   private func handleContentChange(newContent: String) {
     guard message.role == .assistant, let formatter = textFormatter else { return }
-
-    // Calculate the delta (new content since last update)
+    
+    // Extract only assistant content for formatting
+    let (_, assistantContent) = splitContent(newContent)
+    
     let currentLength = formatter.deltas.joined().count
-    if newContent.count > currentLength {
-      let newDelta = String(newContent.dropFirst(currentLength))
+    if assistantContent.count > currentLength {
+      let newDelta = String(assistantContent.dropFirst(currentLength))
       formatter.ingest(delta: newDelta)
     }
   }
-
-  /// Estimate minimum height based on content
-  private var estimatedHeight: CGFloat {
-    let lineCount = message.content.components(separatedBy: .newlines).count
-    let hasCodeBlocks = message.content.contains("```")
-
-    // Base height per line
-    var height: CGFloat = CGFloat(lineCount) * 20
-
-    // Add extra height for code blocks
-    if hasCodeBlocks {
-      let codeBlockCount = message.content.components(separatedBy: "```").count / 2
-      height += CGFloat(codeBlockCount) * 100
-    }
-
-    // Minimum heights
-    return max(height, message.role == .user ? 44 : 60)
-  }
+  
 }
