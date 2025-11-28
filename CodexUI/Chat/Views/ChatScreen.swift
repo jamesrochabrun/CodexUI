@@ -6,11 +6,12 @@
 import SwiftUI
 
 public struct ChatScreen: View {
-  
+
   @State private var viewModel = ChatViewModel()
   @State private var messageText = ""
   @State private var showingSettings = false
-  
+  @State private var contextManager = ContextManager()
+
   public init() {}
   
   public var body: some View {
@@ -29,8 +30,12 @@ public struct ChatScreen: View {
       ChatInputView(
         text: $messageText,
         isLoading: viewModel.isLoading,
+        contextManager: contextManager,
+        projectPath: viewModel.projectPath,
         onSend: {
-          viewModel.sendMessage(messageText)
+          // Get context before clearing
+          let context = contextManager.hasContext ? contextManager.getFormattedContext() : nil
+          viewModel.sendMessage(messageText, context: context)
           messageText = ""
         },
         onCancel: {
