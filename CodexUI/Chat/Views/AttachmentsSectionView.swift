@@ -2,8 +2,6 @@
 //  AttachmentsSectionView.swift
 //  CodexUI
 //
-//  Created by Claude on 2025-06-30.
-//
 
 import SwiftUI
 
