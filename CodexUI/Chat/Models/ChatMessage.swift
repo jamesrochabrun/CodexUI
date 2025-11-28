@@ -5,6 +5,23 @@
 
 import Foundation
 
+// MARK: - Stored Attachment
+
+/// Represents a stored attachment in a chat message (for persistence)
+public struct StoredAttachment: Identifiable, Codable, Equatable {
+  public let id: UUID
+  public let fileName: String
+  public let type: String
+  public let filePath: String?
+
+  public init(id: UUID = UUID(), fileName: String, type: String, filePath: String?) {
+    self.id = id
+    self.fileName = fileName
+    self.type = type
+    self.filePath = filePath
+  }
+}
+
 /// Represents a single message in the chat conversation
 public struct ChatMessage: Identifiable, Equatable {
   /// Unique identifier for the message
@@ -25,13 +42,17 @@ public struct ChatMessage: Identifiable, Equatable {
   /// Whether the message was cancelled by the user
   public var wasCancelled: Bool
 
+  /// Attachments associated with the message
+  public var attachments: [StoredAttachment]?
+
   public init(
     id: UUID = UUID(),
     role: MessageRole,
     content: String,
     timestamp: Date = Date(),
     isComplete: Bool = true,
-    wasCancelled: Bool = false
+    wasCancelled: Bool = false,
+    attachments: [StoredAttachment]? = nil
   ) {
     self.id = id
     self.role = role
@@ -39,6 +60,7 @@ public struct ChatMessage: Identifiable, Equatable {
     self.timestamp = timestamp
     self.isComplete = isComplete
     self.wasCancelled = wasCancelled
+    self.attachments = attachments
   }
 }
 
