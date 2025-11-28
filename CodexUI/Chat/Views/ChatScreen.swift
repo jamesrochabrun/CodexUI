@@ -32,10 +32,10 @@ public struct ChatScreen: View {
         isLoading: viewModel.isLoading,
         contextManager: contextManager,
         projectPath: viewModel.projectPath,
-        onSend: {
+        onSend: { attachments in
           // Get context before clearing
           let context = contextManager.hasContext ? contextManager.getFormattedContext() : nil
-          viewModel.sendMessage(messageText, context: context)
+          viewModel.sendMessage(messageText, context: context, attachments: attachments)
           messageText = ""
         },
         onCancel: {

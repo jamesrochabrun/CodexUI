@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChatInputView: View {
 
@@ -13,7 +14,7 @@ struct ChatInputView: View {
   let isLoading: Bool
   let contextManager: ContextManager
   let projectPath: String
-  let onSend: () -> Void
+  let onSend: ([FileAttachment]?) -> Void
   let onCancel: () -> Void
 
   @FocusState private var isFocused: Bool
@@ -27,6 +28,12 @@ struct ChatInputView: View {
   @State private var fileSearchViewModel: FileSearchViewModel? = nil
   @State private var isUpdatingFileSearch = false
 
+  // Attachment properties
+  @State private var attachments: [FileAttachment] = []
+  @State private var isDragging = false
+  @State private var showingFilePicker = false
+  private let processor = AttachmentProcessor()
+
   // MARK: - Constants
 
   private let textAreaEdgeInsets = EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 15)
@@ -38,7 +45,7 @@ struct ChatInputView: View {
     isLoading: Bool,
     contextManager: ContextManager,
     projectPath: String,
-    onSend: @escaping () -> Void,
+    onSend: @escaping ([FileAttachment]?) -> Void,
     onCancel: @escaping () -> Void,
     triggerFocus: Binding<Bool> = .constant(false)
   ) {
@@ -49,6 +56,13 @@ struct ChatInputView: View {
     self.onSend = onSend
     self.onCancel = onCancel
     _triggerFocus = triggerFocus
+  }
+
+  // MARK: - Computed Properties
+
+  /// Allowed file types for import
+  private var allowedFileTypes: [UTType] {
+    [.folder, .image, .pdf, .text, .plainText, .sourceCode, .data, .item]
   }
 
   // MARK: - Body
@@ -89,6 +103,12 @@ struct ChatInputView: View {
           if contextManager.hasContext {
             contextBar
           }
+          // Attachment list
+          if !attachments.isEmpty {
+            AttachmentListView(attachments: $attachments)
+              .padding(.horizontal, 8)
+              .padding(.top, 4)
+          }
           HStack(alignment: .center) {
             attachmentButton
             textEditor
@@ -104,6 +124,7 @@ struct ChatInputView: View {
     }
     .animation(.easeInOut(duration: 0.2), value: showingFileSearch)
     .animation(.easeInOut(duration: 0.2), value: contextManager.hasContext)
+    .animation(.easeInOut(duration: 0.2), value: attachments.count)
     .onAppear {
       // Initialize file search view model
       if fileSearchViewModel == nil {
@@ -118,6 +139,13 @@ struct ChatInputView: View {
       if !newValue.isEmpty {
         fileSearchViewModel?.updateProjectPath(newValue)
       }
+    }
+    .fileImporter(
+      isPresented: $showingFilePicker,
+      allowedContentTypes: allowedFileTypes,
+      allowsMultipleSelection: true
+    ) { result in
+      handleFileImport(result)
     }
   }
 }
@@ -174,13 +202,12 @@ extension ChatInputView {
 
 extension ChatInputView {
 
-  /// Attachment button (placeholder for future functionality)
+  /// Attachment button
   private var attachmentButton: some View {
     Button(action: {
-      // TODO: Implement file attachment
+      showingFilePicker = true
     }) {
       Image(systemName: "paperclip")
-        .foregroundColor(.brandTertiary)
     }
     .buttonStyle(.plain)
     .padding(.leading, 8)
@@ -227,7 +254,8 @@ extension ChatInputView {
   /// Input area border
   private var inputBorder: some View {
     RoundedRectangle(cornerRadius: 12)
-      .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+      .stroke(isDragging ? Color.accentColor : Color(NSColor.separatorColor), lineWidth: isDragging ? 2 : 1)
+      .animation(.easeInOut(duration: 0.2), value: isDragging)
   }
 
   /// Placeholder view
@@ -276,6 +304,9 @@ extension ChatInputView {
         .onKeyPress { key in
           handleKeyPress(key)
         }
+        .overlay {
+          textEditorOverlay
+        }
 
       if text.isEmpty {
         placeholderView
@@ -283,6 +314,16 @@ extension ChatInputView {
           .padding(.leading, 4)
       }
     }
+  }
+
+  /// Text editor overlay for drag and drop
+  private var textEditorOverlay: some View {
+    Color.clear
+      .allowsHitTesting(true)
+      .onDrop(of: [.fileURL, .png, .tiff, .image], isTargeted: $isDragging) { providers in
+        handleDroppedProviders(providers)
+        return true
+      }
   }
 
   /// Handle keyboard events
@@ -354,10 +395,194 @@ extension ChatInputView {
   /// Send message
   private func sendMessage() {
     guard !isTextEmpty else { return }
-    onSend()
+    // Include attachments if any
+    let messageAttachments = attachments.isEmpty ? nil : attachments
+    onSend(messageAttachments)
     text = ""
-    // Clear context after sending
+    // Clear context and attachments after sending
     contextManager.clearAll()
+    attachments.removeAll()
+  }
+}
+
+// MARK: - File Handling
+
+extension ChatInputView {
+
+  /// Handle file import from file picker
+  private func handleFileImport(_ result: Result<[URL], Error>) {
+    switch result {
+    case .success(let urls):
+      Task {
+        for url in urls {
+          var isDirectory: ObjCBool = false
+          if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) {
+            if isDirectory.boolValue {
+              await handleDroppedFolder(url)
+            } else {
+              let attachment = FileAttachment(url: url)
+              attachments.append(attachment)
+              await processor.process(attachment)
+            }
+          }
+        }
+      }
+    case .failure(let error):
+      print("Failed to import files: \(error)")
+    }
+  }
+
+  /// Handle dropped item providers
+  private func handleDroppedProviders(_ providers: [NSItemProvider]) {
+    Task {
+      for provider in providers {
+        // Try to load as file URL first (this handles both files and folders)
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+          _ = provider.loadObject(ofClass: URL.self) { url, error in
+            guard let url = url, error == nil else { return }
+
+            Task { @MainActor in
+              // Check if it's a directory
+              var isDirectory: ObjCBool = false
+              if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) {
+                if isDirectory.boolValue {
+                  // Handle folder
+                  await handleDroppedFolder(url)
+                } else {
+                  // Handle single file
+                  // Check if it's a screenshot from temporary directory
+                  let isScreenshot = url.path.contains("TemporaryItems") || url.path.contains("screencaptureui")
+                  let attachment = FileAttachment(url: url, isTemporary: isScreenshot)
+                  attachments.append(attachment)
+                  await processor.process(attachment)
+                }
+              }
+            }
+          }
+        }
+        // If not a file URL, try to load as PNG data (for screenshots)
+        else if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
+          _ = provider.loadDataRepresentation(for: .png) { data, error in
+            guard let data = data, error == nil else { return }
+
+            Task { @MainActor in
+              // Save PNG data to temporary file
+              let tempDirectory = FileManager.default.temporaryDirectory
+              let fileName = "screenshot_\(UUID().uuidString).png"
+              let tempURL = tempDirectory.appendingPathComponent(fileName)
+
+              do {
+                try data.write(to: tempURL)
+                let attachment = FileAttachment(url: tempURL, isTemporary: true)
+                attachments.append(attachment)
+                await processor.process(attachment)
+              } catch {
+                print("Failed to save dropped screenshot: \(error)")
+              }
+            }
+          }
+        }
+        // Try TIFF data (another common screenshot format)
+        else if provider.hasItemConformingToTypeIdentifier(UTType.tiff.identifier) {
+          _ = provider.loadDataRepresentation(for: .tiff) { data, error in
+            guard let data = data, error == nil else { return }
+
+            Task { @MainActor in
+              // Save TIFF data to temporary file
+              let tempDirectory = FileManager.default.temporaryDirectory
+              let fileName = "screenshot_\(UUID().uuidString).tiff"
+              let tempURL = tempDirectory.appendingPathComponent(fileName)
+
+              do {
+                try data.write(to: tempURL)
+                let attachment = FileAttachment(url: tempURL, isTemporary: true)
+                attachments.append(attachment)
+                await processor.process(attachment)
+              } catch {
+                print("Failed to save dropped screenshot: \(error)")
+              }
+            }
+          }
+        }
+        // Finally, try generic image data
+        else if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+          _ = provider.loadDataRepresentation(for: .image) { data, error in
+            guard let data = data, error == nil else { return }
+
+            Task { @MainActor in
+              // Save image data to temporary file
+              let tempDirectory = FileManager.default.temporaryDirectory
+              let fileName = "dropped_image_\(UUID().uuidString).png"
+              let tempURL = tempDirectory.appendingPathComponent(fileName)
+
+              do {
+                try data.write(to: tempURL)
+                let attachment = FileAttachment(url: tempURL, isTemporary: true)
+                attachments.append(attachment)
+                await processor.process(attachment)
+              } catch {
+                print("Failed to save dropped image: \(error)")
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /// Handle dropped folder
+  @MainActor
+  private func handleDroppedFolder(_ folderURL: URL) async {
+    // Collect files synchronously first
+    let filesToAdd = collectFilesFromFolder(folderURL)
+
+    // Add files to attachments asynchronously
+    for fileURL in filesToAdd {
+      let attachment = FileAttachment(url: fileURL)
+      attachments.append(attachment)
+      await processor.process(attachment)
+    }
+  }
+
+  /// Collect files from folder recursively
+  private func collectFilesFromFolder(_ folderURL: URL) -> [URL] {
+    let fileManager = FileManager.default
+
+    // Get all files in the folder recursively
+    guard let enumerator = fileManager.enumerator(
+      at: folderURL,
+      includingPropertiesForKeys: [.isRegularFileKey, .isHiddenKey],
+      options: [.skipsHiddenFiles, .skipsPackageDescendants]
+    ) else { return [] }
+
+    var filesToAdd: [URL] = []
+
+    for case let fileURL as URL in enumerator {
+      do {
+        let resourceValues = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .isHiddenKey])
+
+        // Only add regular files (not directories or special files)
+        if let isRegularFile = resourceValues.isRegularFile, isRegularFile,
+           let isHidden = resourceValues.isHidden, !isHidden {
+
+          // Skip system files
+          let fileName = fileURL.lastPathComponent
+          if !isSystemFile(fileName) {
+            filesToAdd.append(fileURL)
+          }
+        }
+      } catch {
+        print("Error checking file properties: \(error)")
+      }
+    }
+
+    return filesToAdd
+  }
+
+  /// Check if file is a system file
+  private func isSystemFile(_ fileName: String) -> Bool {
+    let systemFiles = [".DS_Store", ".localized", "Thumbs.db", "desktop.ini", ".git", ".svn"]
+    return systemFiles.contains(fileName) || fileName.hasPrefix("~$")
   }
 }
 

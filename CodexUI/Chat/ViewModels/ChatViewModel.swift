@@ -90,7 +90,7 @@ public final class ChatViewModel {
 
   // MARK: - Public Methods
 
-  func sendMessage(_ text: String, context: String? = nil) {
+  func sendMessage(_ text: String, context: String? = nil, attachments: [FileAttachment]? = nil) {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return }
     guard hasValidProjectPath else {
@@ -99,8 +99,18 @@ public final class ChatViewModel {
       return
     }
 
-    // Add user message
-    let userMessage = ChatMessage(role: .user, content: trimmed)
+    // Convert FileAttachment to StoredAttachment for the message
+    let storedAttachments = attachments?.map { attachment in
+      StoredAttachment(
+        id: attachment.id,
+        fileName: attachment.fileName,
+        type: attachment.type.rawValue,
+        filePath: attachment.filePath
+      )
+    }
+
+    // Add user message with attachments
+    let userMessage = ChatMessage(role: .user, content: trimmed, attachments: storedAttachments)
     messages.append(userMessage)
 
     // Create placeholder assistant message for streaming
@@ -119,6 +129,12 @@ public final class ChatViewModel {
     var fullPrompt = trimmed
     if let context = context, !context.isEmpty {
       fullPrompt = "\(context)\n\n---\n\n\(trimmed)"
+    }
+
+    // Build prompt with attachment info
+    if let attachments = attachments, !attachments.isEmpty {
+      let attachmentInfo = AttachmentProcessor.formatAttachmentsForXML(attachments)
+      fullPrompt = "\(attachmentInfo)\n\n\(fullPrompt)"
     }
 
     currentTask = Task {

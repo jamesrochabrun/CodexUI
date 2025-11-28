@@ -51,14 +51,22 @@ struct ChatMessageView: View {
   }
   
   private var userMessageView: some View {
-    HStack(alignment: .top, spacing: 8) {
-      Text(">")
-        .font(.system(size: 13, design: .monospaced))
-        .foregroundStyle(Color.Terminal.userPrompt)
-      
-      Text(message.content)
-        .font(.system(size: 13, design: .monospaced))
-        .textSelection(.enabled)
+    VStack(alignment: .leading, spacing: 4) {
+      HStack(alignment: .top, spacing: 8) {
+        Text(">")
+          .font(.system(size: 13, design: .monospaced))
+          .foregroundStyle(Color.Terminal.userPrompt)
+
+        Text(message.content)
+          .font(.system(size: 13, design: .monospaced))
+          .textSelection(.enabled)
+      }
+
+      // Display attachments if present
+      if let attachments = message.attachments, !attachments.isEmpty {
+        AttachmentsSectionView(attachments: attachments)
+          .padding(.top, 4)
+      }
     }
     .padding(.vertical, 4)
   }
