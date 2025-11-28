@@ -98,7 +98,7 @@ extension Color {
     switch theme {
     case .codex:
       return ThemeColors(
-        brandPrimary: Color(hex: "#14B8A6"),  // teal
+        brandPrimary: Color(hex: "#00A5B2"),  // teal
         brandSecondary: Color(hex: "#9333EA"),  // purple
         brandTertiary: Color(hex: "#64748B")  // slate
       )
@@ -109,11 +109,11 @@ extension Color {
 // MARK: - Primary Palette (Teal)
 
 extension Color {
-  static let primaryTeal = Color(hex: "#14B8A6")  // Vibrant teal
-  static let deepTeal = Color(hex: "#0D9488")  // Deep teal
-  static let lightTeal = Color(hex: "#5EEAD4")  // Light teal
-  static let ultraLightTeal = Color(hex: "#99F6E4")  // Ultra light teal
-  static let darkTeal = Color(hex: "#0F766E")  // Dark teal
+  static let primaryTeal = Color(hex: "#00A5B2")  // Primary teal
+  static let deepTeal = Color(hex: "#00A5B2")  // Same as primary
+  static let lightTeal = Color(hex: "#00A5B2")  // Same as primary
+  static let ultraLightTeal = Color(hex: "#00A5B2")  // Same as primary
+  static let darkTeal = Color(hex: "#00A5B2")  // Same as primary
 }
 
 // MARK: - Secondary Palette (Purple)
@@ -132,7 +132,7 @@ extension Color {
   static let purpleAccent = Color(hex: "#D946EF")  // Pink-purple accent
   static let indigoPurple = Color(hex: "#6366F1")  // Indigo-purple
   static let bluePurple = Color(hex: "#818CF8")  // Blue-purple
-  static let tealAccent = Color(hex: "#2DD4BF")  // Teal accent
+  static let tealAccent = Color(hex: "#00A5B2")  // Teal accent
 }
 
 // MARK: - Supporting Colors (Semantic)
