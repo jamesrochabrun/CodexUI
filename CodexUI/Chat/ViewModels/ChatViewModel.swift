@@ -90,7 +90,7 @@ public final class ChatViewModel {
 
   // MARK: - Public Methods
 
-  func sendMessage(_ text: String) {
+  func sendMessage(_ text: String, context: String? = nil) {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return }
     guard hasValidProjectPath else {
@@ -115,8 +115,14 @@ public final class ChatViewModel {
     errorMessage = nil
     hasError = false
 
+    // Build prompt with context if provided
+    var fullPrompt = trimmed
+    if let context = context, !context.isEmpty {
+      fullPrompt = "\(context)\n\n---\n\n\(trimmed)"
+    }
+
     currentTask = Task {
-      await streamResponse(prompt: trimmed, messageId: assistantMessage.id)
+      await streamResponse(prompt: fullPrompt, messageId: assistantMessage.id)
     }
   }
 
