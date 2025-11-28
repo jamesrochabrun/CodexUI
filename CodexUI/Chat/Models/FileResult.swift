@@ -12,7 +12,7 @@ import SwiftUI
 enum SelectionMode: Codable {
   /// File was selected through user interaction in the UI.
   case userInteraction
-
+  
   /// File was automatically marked as selected when opened in a new tab.
   case tab
 }
@@ -20,9 +20,9 @@ enum SelectionMode: Codable {
 // MARK: - FileResult
 
 struct FileResult: Hashable, Identifiable, Codable {
-
+  
   // MARK: Lifecycle
-
+  
   init(
     filePath: String,
     isSelected: Bool = false,
@@ -39,22 +39,22 @@ struct FileResult: Hashable, Identifiable, Codable {
     id = filePath
     self.matchingLines = matchingLines
   }
-
+  
   // MARK: Internal
-
+  
   /// A matching line from a file in a Search Query.
   struct FileLine: Identifiable, Codable {
     let id: UUID
     let line: String
     let lineNumber: Int
-
+    
     init(line: String, lineNumber: Int) {
       self.id = UUID()
       self.line = line
       self.lineNumber = lineNumber
     }
   }
-
+  
   let id: String
   let filePath: String
   var isSelected: Bool
@@ -63,12 +63,12 @@ struct FileResult: Hashable, Identifiable, Codable {
   let lowercasedFileName: String
   let fileName: String
   let matchingLines: [FileLine]?
-
+  
   var fileExtension: String {
     let components = fileName.split(separator: ".")
     return components.last.map(String.init) ?? ""
   }
-
+  
   var fileExtensionImageName: String {
     switch fileExtension {
     case "swift": "swift"
@@ -76,22 +76,22 @@ struct FileResult: Hashable, Identifiable, Codable {
     default: "doc"
     }
   }
-
+  
   var imageForegroundColorForFileExtension: Color {
     switch fileExtension {
     case "swift": Color(red: 255/255, green: 88/255, blue: 44/255)
     default: .primary
     }
   }
-
+  
   static func ==(lhs: FileResult, rhs: FileResult) -> Bool {
     lhs.filePath == rhs.filePath
   }
-
+  
   func hash(into hasher: inout Hasher) {
     hasher.combine(filePath)
   }
-
+  
   // Convert to FileInfo for compatibility
   var fileInfo: FileInfo {
     FileInfo(path: filePath, name: fileName)

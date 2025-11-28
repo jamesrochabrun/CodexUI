@@ -8,21 +8,21 @@ import Foundation
 /// Represents information about a file
 public struct FileInfo: Equatable, Identifiable, Codable, Hashable {
   public let id: UUID
-
+  
   /// Full path to the file
   public let path: String
-
+  
   /// File name without path
   public let name: String
-
+  
   /// File content (optional, loaded on demand)
   public let content: String?
-
+  
   /// File extension
   public var fileExtension: String? {
     URL(fileURLWithPath: path).pathExtension.isEmpty ? nil : URL(fileURLWithPath: path).pathExtension
   }
-
+  
   /// Programming language based on file extension
   public var language: String? {
     guard let ext = fileExtension else { return nil }
@@ -48,7 +48,7 @@ public struct FileInfo: Equatable, Identifiable, Codable, Hashable {
     default: return nil
     }
   }
-
+  
   public init(id: UUID = UUID(), path: String, name: String? = nil, content: String? = nil) {
     self.id = id
     self.path = path
