@@ -152,6 +152,7 @@ extension Color {
   static let backgroundLight = Color(hex: "#FAF9F5")
   static let expandedContentBackgroundDark = Color(hex: "#1F2421")
   static let expandedContentBackgroundLight = Color.white
+  static let terminalBackgroundDark = Color(hex: "#1A1A1A")  // Classic terminal black
 
   static func adaptiveBackground(for colorScheme: ColorScheme) -> Color {
     colorScheme == .dark ? backgroundDark : backgroundLight
@@ -159,6 +160,10 @@ extension Color {
 
   static func adaptiveExpandedContentBackground(for colorScheme: ColorScheme) -> Color {
     colorScheme == .dark ? expandedContentBackgroundDark : expandedContentBackgroundLight
+  }
+
+  static func terminalBackground(for colorScheme: ColorScheme) -> Color {
+    colorScheme == .dark ? terminalBackgroundDark : backgroundLight
   }
 }
 

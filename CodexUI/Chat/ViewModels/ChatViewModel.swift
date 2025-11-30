@@ -29,6 +29,7 @@ public final class ChatViewModel {
 
   private let settings = SettingsManager.shared
   private let sessionManager = SessionManager.shared
+  var configService: CodexConfigService?
 
   var projectPath: String {
     settings.projectPath
@@ -39,7 +40,23 @@ public final class ChatViewModel {
   }
 
   var model: String {
-    "gpt-5.1-codex-max"
+    configService?.model ?? "unknown"
+  }
+
+  var reasoningEffort: String {
+    configService?.reasoningEffort ?? "medium"
+  }
+
+  var cliVersion: String {
+    configService?.cliVersion ?? "unknown"
+  }
+
+  var userEmail: String? {
+    configService?.userEmail
+  }
+
+  var planType: String? {
+    configService?.planType
   }
 
   // MARK: - Private
@@ -201,7 +218,7 @@ public final class ChatViewModel {
       // Sandbox/model/changeDirectory only on first turn (resume rejects these flags)
       if !hasSession {
         options.sandbox = .readOnly
-        options.model = "gpt-5.1-codex-max"
+        options.model = model
         // Set working directory via --cd flag (only on first turn)
         if !settings.projectPath.isEmpty {
           options.changeDirectory = settings.projectPath
@@ -255,7 +272,6 @@ public final class ChatViewModel {
               }
 
             default:
-              // Ignore thread.started, turn.started, turn.completed, etc.
               break
             }
 

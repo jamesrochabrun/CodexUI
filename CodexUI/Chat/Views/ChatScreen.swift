@@ -7,6 +7,7 @@ import SwiftUI
 
 public struct ChatScreen: View {
 
+  @Environment(CodexConfigService.self) private var configService
   @State private var viewModel = ChatViewModel()
   @State private var messageText = ""
   @State private var showingSettings = false
@@ -32,7 +33,7 @@ public struct ChatScreen: View {
       if let error = viewModel.errorMessage {
         errorBanner(error)
       }
-      
+
       ChatInputView(
         text: $messageText,
         isLoading: viewModel.isLoading,
@@ -94,6 +95,7 @@ public struct ChatScreen: View {
       )
     }
     .task {
+      viewModel.configService = configService
       await loadSessions()
     }
     .onChange(of: viewModel.currentSessionId) { oldValue, newValue in
@@ -160,7 +162,7 @@ public struct ChatScreen: View {
         Text("(\(appVersion))")
           .foregroundStyle(.secondary)
       }
-      
+
       // Model line
       HStack(spacing: 0) {
         Text("model:")
@@ -169,7 +171,23 @@ public struct ChatScreen: View {
         Text(viewModel.model)
           .foregroundStyle(Color.brandPrimary)
       }
-      
+
+      // Reasoning effort line
+      HStack(spacing: 0) {
+        Text("reasoning:")
+          .foregroundStyle(.secondary)
+          .frame(width: 80, alignment: .leading)
+        Text(viewModel.reasoningEffort)
+      }
+
+      // CLI version line
+      HStack(spacing: 0) {
+        Text("cli:")
+          .foregroundStyle(.secondary)
+          .frame(width: 80, alignment: .leading)
+        Text(viewModel.cliVersion)
+      }
+
       // Directory line
       HStack(spacing: 0) {
         Text("directory:")
@@ -179,13 +197,32 @@ public struct ChatScreen: View {
           .lineLimit(1)
           .truncationMode(.middle)
       }
-      
+
+      // User info separator and details
+      if viewModel.userEmail != nil || viewModel.planType != nil {
+        Divider()
+          .padding(.vertical, 4)
+
+        HStack(spacing: 8) {
+          if let email = viewModel.userEmail {
+            Text(email)
+              .foregroundStyle(.secondary)
+          }
+          if let planType = viewModel.planType {
+            Text("·")
+              .foregroundStyle(.tertiary)
+            Text(planType.capitalized)
+              .foregroundStyle(Color.brandPrimary)
+          }
+        }
+      }
+
       // Settings prompt if no valid path
       if !viewModel.hasValidProjectPath {
         Text("Select a working directory in Settings to get started")
           .foregroundStyle(.secondary)
           .padding(.top, 4)
-        
+
         Button("Open Settings") {
           showingSettings = true
         }
