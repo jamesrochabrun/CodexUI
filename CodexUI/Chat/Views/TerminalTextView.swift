@@ -23,7 +23,7 @@ struct TerminalStatusView: View {
     .padding(.vertical, 12)
     .padding(.horizontal, 8)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .background(Color.adaptiveBackground(for: colorScheme))
+    .background(Color.terminalBackground(for: colorScheme))
     .clipShape(RoundedRectangle(cornerRadius: 8))
   }
 
@@ -47,7 +47,7 @@ struct TerminalStatusView: View {
       Text(parsed.content)
         .textSelection(.enabled)
     }
-    .font(.system(size: 13, design: .monospaced))
+    .font(.system(size: 11, design: .monospaced))
   }
 
   /// Parse a line into its prefix, content, color, and whether it's indented
@@ -85,7 +85,7 @@ struct BlinkingCursor: View {
 
   var body: some View {
     Text("▋")
-      .font(.system(size: 13, design: .monospaced))
+      .font(.system(size: 11, design: .monospaced))
       .foregroundStyle(Color.Terminal.assistant)
       .opacity(isVisible ? 1 : 0)
       .onAppear {
