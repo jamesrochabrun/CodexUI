@@ -8,7 +8,7 @@ import Foundation
 // MARK: - Stored Attachment
 
 /// Represents a stored attachment in a chat message (for persistence)
-public struct StoredAttachment: Identifiable, Codable, Equatable {
+public struct StoredAttachment: Identifiable, Codable, Equatable, Sendable {
   public let id: UUID
   public let fileName: String
   public let type: String
@@ -23,7 +23,7 @@ public struct StoredAttachment: Identifiable, Codable, Equatable {
 }
 
 /// Represents a single message in the chat conversation
-public struct ChatMessage: Identifiable, Equatable {
+public struct ChatMessage: Identifiable, Equatable, Codable, Sendable {
   /// Unique identifier for the message
   public let id: UUID
 
@@ -65,7 +65,7 @@ public struct ChatMessage: Identifiable, Equatable {
 }
 
 /// Defines who sent the message
-public enum MessageRole: String {
+public enum MessageRole: String, Codable, Sendable {
   case user
   case assistant
 }
