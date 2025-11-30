@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7B305E632ED44753002F5F5F /* CodexSDK */; };
+		7B5F86EF2EDC291A00565978 /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = 7B5F86EE2EDC291A00565978 /* SQLite */; };
 		7B7ADC562ED5762700ADC068 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC552ED5762700ADC068 /* Down */; };
 		7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC582ED5765400ADC068 /* HighlightSwift */; };
 /* End PBXBuildFile section */
@@ -58,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B5F86EF2EDC291A00565978 /* SQLite in Frameworks */,
 				7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */,
 				7B7ADC562ED5762700ADC068 /* Down in Frameworks */,
 				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
@@ -124,6 +126,7 @@
 				7B305E632ED44753002F5F5F /* CodexSDK */,
 				7B7ADC552ED5762700ADC068 /* Down */,
 				7B7ADC582ED5765400ADC068 /* HighlightSwift */,
+				7B5F86EE2EDC291A00565978 /* SQLite */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -211,6 +214,7 @@
 				7B305E622ED44753002F5F5F /* XCLocalSwiftPackageReference "../CodexSDK" */,
 				7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */,
 				7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */,
+				7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
@@ -641,6 +645,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stephencelis/SQLite.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.15.4;
+			};
+		};
 		7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jamesrochabrun/Down";
@@ -663,6 +675,11 @@
 		7B305E632ED44753002F5F5F /* CodexSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CodexSDK;
+		};
+		7B5F86EE2EDC291A00565978 /* SQLite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */;
+			productName = SQLite;
 		};
 		7B7ADC552ED5762700ADC068 /* Down */ = {
 			isa = XCSwiftPackageProductDependency;

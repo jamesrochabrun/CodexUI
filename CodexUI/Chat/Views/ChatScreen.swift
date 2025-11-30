@@ -12,6 +12,12 @@ public struct ChatScreen: View {
   @State private var showingSettings = false
   @State private var contextManager = ContextManager()
 
+  // Session management state
+  @State private var showSessionPicker = false
+  @State private var availableSessions: [StoredSession] = []
+  @State private var isLoadingSessions = false
+  @State private var sessionLoadError: String?
+
   public init() {}
   
   public var body: some View {
@@ -46,6 +52,13 @@ public struct ChatScreen: View {
     .frame(minWidth: 400, minHeight: 300)
     .toolbar {
       ToolbarItem(placement: .automatic) {
+        Button(action: { showSessionPicker = true }) {
+          Image(systemName: "list.bullet")
+            .font(.title2)
+        }
+        .help("Sessions")
+      }
+      ToolbarItem(placement: .automatic) {
         Button(action: { showingSettings = true }) {
           Image(systemName: "gearshape")
             .font(.title2)
@@ -55,6 +68,49 @@ public struct ChatScreen: View {
     }
     .sheet(isPresented: $showingSettings) {
       SettingsView()
+    }
+    .sheet(isPresented: $showSessionPicker) {
+      SessionPickerContent(
+        sessions: availableSessions,
+        currentSessionId: viewModel.currentSessionId,
+        isLoading: isLoadingSessions,
+        error: sessionLoadError,
+        defaultWorkingDirectory: viewModel.projectPath.isEmpty ? nil : viewModel.projectPath,
+        onStartNewSession: { directory in
+          startNewSession(directory: directory)
+        },
+        onRestoreSession: { session in
+          restoreSession(session)
+        },
+        onDeleteSession: { session in
+          deleteSession(session)
+        },
+        onDeleteAllSessions: {
+          deleteAllSessions()
+        },
+        onDismiss: {
+          showSessionPicker = false
+        }
+      )
+    }
+    .task {
+      await loadSessions()
+    }
+    .onChange(of: viewModel.currentSessionId) { oldValue, newValue in
+      // Reload sessions when a new session is created
+      if oldValue == nil && newValue != nil {
+        Task {
+          await loadSessions()
+        }
+      }
+    }
+    .onChange(of: showSessionPicker) { _, isShowing in
+      // Reload sessions when the picker opens to ensure fresh data
+      if isShowing {
+        Task {
+          await loadSessions()
+        }
+      }
     }
     .alert("Error", isPresented: Binding(
       get: { viewModel.hasError },
@@ -183,6 +239,66 @@ public struct ChatScreen: View {
     .padding(.horizontal)
     .padding(.vertical, 6)
     .background(Color.goldenAmber.opacity(0.1))
+  }
+
+  // MARK: - Session Management
+
+  private func loadSessions() async {
+    isLoadingSessions = true
+    sessionLoadError = nil
+
+    do {
+      availableSessions = try await SessionManager.shared.loadAvailableSessions()
+    } catch {
+      sessionLoadError = error.localizedDescription
+    }
+
+    isLoadingSessions = false
+  }
+
+  private func startNewSession(directory: String?) {
+    viewModel.clearConversation()
+
+    // Update working directory if provided
+    if let dir = directory, !dir.isEmpty {
+      SettingsManager.shared.projectPath = dir
+    }
+  }
+
+  private func restoreSession(_ session: StoredSession) {
+    Task {
+      await SessionManager.shared.restoreSession(session: session, chatViewModel: viewModel)
+    }
+  }
+
+  private func deleteSession(_ session: StoredSession) {
+    Task {
+      do {
+        try await SessionManager.shared.deleteSession(sessionId: session.id)
+
+        // If we deleted the current session, clear the conversation
+        if viewModel.currentSessionId == session.id {
+          viewModel.clearConversation()
+        }
+
+        // Reload sessions
+        await loadSessions()
+      } catch {
+        print("Failed to delete session: \(error)")
+      }
+    }
+  }
+
+  private func deleteAllSessions() {
+    Task {
+      do {
+        try await SessionManager.shared.deleteAllSessions()
+        viewModel.clearConversation()
+        await loadSessions()
+      } catch {
+        print("Failed to delete all sessions: \(error)")
+      }
+    }
   }
 }
 

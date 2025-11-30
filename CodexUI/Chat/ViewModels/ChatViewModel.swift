@@ -17,9 +17,18 @@ public final class ChatViewModel {
   private(set) var errorMessage: String?
   private(set) var hasError = false
 
+  // MARK: - Session State
+
+  /// Current session ID (nil if no session started)
+  private(set) var currentSessionId: String?
+
+  /// Whether a session has been started (for UI purposes)
+  private(set) var hasSessionStarted: Bool = false
+
   // MARK: - Settings
 
   private let settings = SettingsManager.shared
+  private let sessionManager = SessionManager.shared
 
   var projectPath: String {
     settings.projectPath
@@ -138,7 +147,15 @@ public final class ChatViewModel {
     }
 
     currentTask = Task {
+      // Start a new session if this is the first message
+      if !hasSessionStarted {
+        await startSession(withFirstMessage: trimmed)
+      }
+
       await streamResponse(prompt: fullPrompt, messageId: assistantMessage.id)
+
+      // Save messages after the response completes
+      await saveCurrentSession()
     }
   }
 
@@ -470,5 +487,83 @@ public final class ChatViewModel {
       return "exit 1"
     }
     return ""
+  }
+
+  // MARK: - Session Management
+
+  /// Clears the current conversation and resets session state
+  func clearConversation() {
+    messages.removeAll()
+    currentSessionId = nil
+    hasSession = false
+    hasSessionStarted = false
+    errorMessage = nil
+    hasError = false
+  }
+
+  /// Injects a restored session into the view model
+  func injectSession(sessionId: String, messages: [ChatMessage], workingDirectory: String?) {
+    // Clear existing state
+    self.messages.removeAll()
+
+    // Set session state
+    self.currentSessionId = sessionId
+    self.hasSession = true
+    self.hasSessionStarted = true
+
+    // Load messages
+    self.messages = messages
+
+    // Update working directory if provided
+    if let dir = workingDirectory, !dir.isEmpty {
+      settings.projectPath = dir
+    }
+
+    // Clear any error state
+    errorMessage = nil
+    hasError = false
+  }
+
+  /// Saves the current session to storage
+  func saveCurrentSession() async {
+    guard let sessionId = currentSessionId, !messages.isEmpty else {
+      print("[Session] Skipping save - no session ID or no messages")
+      return
+    }
+
+    print("[Session] Saving \(messages.count) messages for session: \(sessionId)")
+
+    do {
+      try await sessionManager.saveMessages(sessionId: sessionId, messages: messages)
+      print("[Session] Messages saved successfully")
+    } catch {
+      print("[Session] Failed to save session messages: \(error)")
+    }
+  }
+
+  /// Starts a new session with the first message
+  func startSession(withFirstMessage message: String) async {
+    // Generate a session ID
+    let sessionId = UUID().uuidString
+    currentSessionId = sessionId
+    hasSessionStarted = true
+
+    print("[Session] Creating session with ID: \(sessionId)")
+
+    // Detect git worktree info
+    let gitInfo = await GitWorktreeDetector.detectWorktreeInfo(for: settings.projectPath)
+
+    do {
+      try await sessionManager.saveSession(
+        id: sessionId,
+        firstMessage: message,
+        workingDirectory: settings.projectPath.isEmpty ? nil : settings.projectPath,
+        branchName: gitInfo?.branch,
+        isWorktree: gitInfo?.isWorktree ?? false
+      )
+      print("[Session] Session saved successfully: \(sessionId)")
+    } catch {
+      print("[Session] Failed to save session: \(error)")
+    }
   }
 }
