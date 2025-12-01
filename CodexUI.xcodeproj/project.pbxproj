@@ -12,6 +12,7 @@
 		7B7ADC562ED5762700ADC068 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC552ED5762700ADC068 /* Down */; };
 		7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC582ED5765400ADC068 /* HighlightSwift */; };
 		7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */; };
+		7BB481AD2EDE40FB00DFE849 /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB481AC2EDE40FB00DFE849 /* CodexSDK */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +66,7 @@
 				7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */,
 				7B7ADC562ED5762700ADC068 /* Down in Frameworks */,
 				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
+				7BB481AD2EDE40FB00DFE849 /* CodexSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +132,7 @@
 				7B7ADC582ED5765400ADC068 /* HighlightSwift */,
 				7B5F86EE2EDC291A00565978 /* SQLite */,
 				7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */,
+				7BB481AC2EDE40FB00DFE849 /* CodexSDK */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -214,11 +217,11 @@
 			mainGroup = 7B305E2F2ED44715002F5F5F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7B305E622ED44753002F5F5F /* XCLocalSwiftPackageReference "../CodexSDK" */,
 				7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */,
 				7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */,
 				7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */,
 				7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
@@ -641,13 +644,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		7B305E622ED44753002F5F5F /* XCLocalSwiftPackageReference "../CodexSDK" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../CodexSDK;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCRemoteSwiftPackageReference section */
 		7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -681,6 +677,14 @@
 				minimumVersion = 2.4.0;
 			};
 		};
+		7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jamesrochabrun/CodexSDK";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.3;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -707,6 +711,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
+		};
+		7BB481AC2EDE40FB00DFE849 /* CodexSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */;
+			productName = CodexSDK;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
