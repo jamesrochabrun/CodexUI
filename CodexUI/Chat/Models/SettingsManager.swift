@@ -7,12 +7,14 @@ import Foundation
 import SwiftUI
 
 @Observable
+@MainActor
 final class SettingsManager {
 
   static let shared = SettingsManager()
 
   private let defaults = UserDefaults.standard
   private let projectPathKey = "com.codexui.projectPath"
+  private let enableXcodeShortcutKey = "com.codexui.enableXcodeShortcut"
 
   var projectPath: String {
     didSet {
@@ -20,8 +22,17 @@ final class SettingsManager {
     }
   }
 
+  /// Whether the CMD+I shortcut for Xcode text capture is enabled
+  var enableXcodeShortcut: Bool {
+    didSet {
+      defaults.set(enableXcodeShortcut, forKey: enableXcodeShortcutKey)
+    }
+  }
+
   private init() {
     self.projectPath = defaults.string(forKey: projectPathKey) ?? ""
+    // Default to enabled for CMD+I shortcut
+    self.enableXcodeShortcut = defaults.object(forKey: enableXcodeShortcutKey) as? Bool ?? true
   }
 
   func clearProjectPath() {

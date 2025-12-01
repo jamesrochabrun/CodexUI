@@ -11,6 +11,7 @@
 		7B5F86EF2EDC291A00565978 /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = 7B5F86EE2EDC291A00565978 /* SQLite */; };
 		7B7ADC562ED5762700ADC068 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC552ED5762700ADC068 /* Down */; };
 		7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC582ED5765400ADC068 /* HighlightSwift */; };
+		7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 			files = (
 				7B5F86EF2EDC291A00565978 /* SQLite in Frameworks */,
 				7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */,
+				7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */,
 				7B7ADC562ED5762700ADC068 /* Down in Frameworks */,
 				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
 			);
@@ -127,6 +129,7 @@
 				7B7ADC552ED5762700ADC068 /* Down */,
 				7B7ADC582ED5765400ADC068 /* HighlightSwift */,
 				7B5F86EE2EDC291A00565978 /* SQLite */,
+				7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -215,6 +218,7 @@
 				7B7ADC542ED5762700ADC068 /* XCRemoteSwiftPackageReference "Down" */,
 				7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */,
 				7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */,
+				7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
@@ -669,6 +673,14 @@
 				version = 1.1.0;
 			};
 		};
+		7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -690,6 +702,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */;
 			productName = HighlightSwift;
+		};
+		7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
