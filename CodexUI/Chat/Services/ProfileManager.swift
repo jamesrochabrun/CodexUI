@@ -130,7 +130,7 @@ final class ProfileManager {
     }
 
     /// System profile IDs that cannot be deleted
-    private static let systemProfileIds = ["safe", "auto", "yolo"]
+    private static let systemProfileIds = ["safe", "ci", "ask", "auto", "yolo"]
 
     /// Delete a profile (system profiles cannot be deleted)
     func deleteProfile(_ profileId: String) throws {

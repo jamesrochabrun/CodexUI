@@ -121,13 +121,14 @@ public final class ChatViewModel {
 
   // MARK: - Public Methods
 
-  func sendMessage(_ text: String, context: String? = nil, attachments: [FileAttachment]? = nil) {
+  @discardableResult
+  func sendMessage(_ text: String, context: String? = nil, attachments: [FileAttachment]? = nil) -> Bool {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else { return }
+    guard !trimmed.isEmpty else { return false }
     guard hasValidProjectPath else {
       errorMessage = "Please select a valid Git repository in Settings."
       hasError = true
-      return
+      return false
     }
 
     // Convert FileAttachment to StoredAttachment for the message
@@ -179,6 +180,8 @@ public final class ChatViewModel {
       // Save messages after the response completes
       await saveCurrentSession()
     }
+
+    return true
   }
 
   func cancelRequest() {
