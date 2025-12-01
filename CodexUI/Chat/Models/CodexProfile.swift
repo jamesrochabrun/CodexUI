@@ -66,6 +66,7 @@ struct CodexProfile: Identifiable, Codable, Equatable, Sendable {
     var approval: CodexApprovalMode
     var fullAuto: Bool
     var model: String?          // Optional model override
+    var reasoningEffort: ReasoningEffort  // Reasoning effort level
     var isBuiltIn: Bool         // true for safe/auto/yolo
 
     /// Computed risk level based on settings
@@ -124,6 +125,7 @@ struct CodexProfile: Identifiable, Codable, Equatable, Sendable {
             approval: .onRequest,
             fullAuto: false,
             model: nil,
+            reasoningEffort: .medium,
             isBuiltIn: true
         ),
         CodexProfile(
@@ -132,6 +134,7 @@ struct CodexProfile: Identifiable, Codable, Equatable, Sendable {
             approval: .onRequest,
             fullAuto: true,
             model: nil,
+            reasoningEffort: .medium,
             isBuiltIn: true
         ),
         CodexProfile(
@@ -140,6 +143,7 @@ struct CodexProfile: Identifiable, Codable, Equatable, Sendable {
             approval: .never,
             fullAuto: true,
             model: nil,
+            reasoningEffort: .medium,
             isBuiltIn: true
         )
     ]

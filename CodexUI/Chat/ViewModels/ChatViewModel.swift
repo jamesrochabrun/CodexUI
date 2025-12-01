@@ -49,7 +49,7 @@ public final class ChatViewModel {
   }
 
   var reasoningEffort: String {
-    configService?.reasoningEffort ?? "medium"
+    UserDefaults.standard.string(forKey: "com.codexui.reasoningEffort") ?? "medium"
   }
 
   var cliVersion: String {
@@ -217,18 +217,11 @@ public final class ChatViewModel {
       // Timeout to avoid indefinite hangs (5 minutes for complex queries)
       options.timeout = 300
 
-      // Sandbox/model/fullAuto/changeDirectory only on first turn (resume rejects these flags)
+      // Profile and changeDirectory only on first turn (resume rejects these flags)
       if !hasSession {
-        // Apply active profile settings if available
-        if let profile = profileManager.activeProfile {
-          options.sandbox = profile.sandbox
-          options.approval = profile.approval
-          options.fullAuto = profile.fullAuto
-          if let profileModel = profile.model, !profileModel.isEmpty {
-            options.model = profileModel
-          } else {
-            options.model = model
-          }
+        // Use --profile flag if a profile is selected (encapsulates sandbox, approval, fullAuto, model, reasoningEffort)
+        if let profileId = profileManager.activeProfileId {
+          options.profile = profileId
         } else {
           // Default behavior when no profile is selected
           options.sandbox = .readOnly
