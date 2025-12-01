@@ -42,21 +42,11 @@ final class FileSearchViewModel {
   // MARK: - Initialization
 
   init(projectPath: String? = nil) {
-    // Try to get a valid search path
+    // Use provided project path or fall back to current working directory
     var searchPath = projectPath
 
-    // If no project path provided, try to get from SettingsManager
+    // If no path or empty, use current working directory as fallback
     if searchPath == nil || searchPath?.isEmpty == true {
-      searchPath = SettingsManager.shared.projectPath
-    }
-
-    // If still no path, use current working directory as fallback
-    if searchPath == nil || searchPath?.isEmpty == true {
-      searchPath = FileManager.default.currentDirectoryPath
-    }
-
-    // Ensure we always have a valid path
-    if searchPath?.isEmpty == true {
       searchPath = FileManager.default.currentDirectoryPath
     }
 

@@ -26,6 +26,10 @@ public struct ChatScreen: View {
   // Keyboard shortcut integration
   @State private var triggerFocus = false
 
+  // Repository selection state
+  @State private var showInvalidRepoAlert = false
+  @State private var showRepoRequiredAlert = false
+
   public init() {}
   
   public var body: some View {
@@ -47,6 +51,12 @@ public struct ChatScreen: View {
         contextManager: contextManager,
         projectPath: viewModel.projectPath,
         onSend: { attachments in
+          // Validate repo is selected before first message
+          if !viewModel.hasSessionStarted && !viewModel.hasValidProjectPath {
+            showRepoRequiredAlert = true
+            return
+          }
+
           // Get context before clearing (includes @ mentions and Xcode context)
           var contextParts: [String] = []
           if contextManager.hasContext {
@@ -109,7 +119,7 @@ public struct ChatScreen: View {
         currentSessionId: viewModel.currentSessionId,
         isLoading: isLoadingSessions,
         error: sessionLoadError,
-        defaultWorkingDirectory: viewModel.projectPath.isEmpty ? nil : viewModel.projectPath,
+        defaultWorkingDirectory: nil,
         onStartNewSession: { directory in
           startNewSession(directory: directory)
         },
@@ -182,6 +192,19 @@ public struct ChatScreen: View {
         Text(error)
       }
     }
+    .alert("Invalid Repository", isPresented: $showInvalidRepoAlert) {
+      Button("OK", role: .cancel) { }
+    } message: {
+      Text("The selected folder is not a valid Git repository. Please select a folder containing a .git directory.")
+    }
+    .alert("Repository Required", isPresented: $showRepoRequiredAlert) {
+      Button("Select Repository") {
+        selectRepository()
+      }
+      Button("Cancel", role: .cancel) { }
+    } message: {
+      Text("Please select a repository before sending your first message.")
+    }
   }
   
   private var messagesListView: some View {
@@ -251,9 +274,22 @@ public struct ChatScreen: View {
         Text("directory:")
           .foregroundStyle(.secondary)
           .frame(width: 80, alignment: .leading)
-        Text(shortenedProjectPath)
-          .lineLimit(1)
-          .truncationMode(.middle)
+
+        if viewModel.hasValidProjectPath {
+          Text(shortenedProjectPath)
+            .lineLimit(1)
+            .truncationMode(.middle)
+        } else {
+          Button(action: selectRepository) {
+            HStack(spacing: 4) {
+              Image(systemName: "folder.badge.plus")
+              Text("Select")
+            }
+          }
+          .buttonStyle(.bordered)
+          .tint(.brandPrimary)
+          .controlSize(.small)
+        }
       }
 
       // User info separator and details
@@ -275,19 +311,6 @@ public struct ChatScreen: View {
         }
       }
 
-      // Settings prompt if no valid path
-      if !viewModel.hasValidProjectPath {
-        Text("Select a working directory in Settings to get started")
-          .foregroundStyle(.secondary)
-          .padding(.top, 4)
-
-        Button("Open Settings") {
-          showingSettings = true
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(.brandPrimary)
-        .padding(.top, 2)
-      }
     }
     .font(.system(.callout, design: .monospaced))
     .padding(12)
@@ -354,9 +377,30 @@ public struct ChatScreen: View {
   private func startNewSession(directory: String?) {
     viewModel.clearConversation()
 
-    // Update working directory if provided
+    // Update session working directory if provided
     if let dir = directory, !dir.isEmpty {
-      SettingsManager.shared.projectPath = dir
+      viewModel.sessionWorkingDirectory = dir
+    }
+  }
+
+  // MARK: - Repository Selection
+
+  private func selectRepository() {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = false
+    panel.canChooseDirectories = true
+    panel.allowsMultipleSelection = false
+    panel.message = "Select a Git repository as your working directory"
+    panel.prompt = "Select"
+
+    if panel.runModal() == .OK, let url = panel.url {
+      let path = url.path
+
+      if SettingsManager.shared.isValidGitRepo(path) {
+        viewModel.sessionWorkingDirectory = path
+      } else {
+        showInvalidRepoAlert = true
+      }
     }
   }
 
