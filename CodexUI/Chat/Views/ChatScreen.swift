@@ -8,16 +8,23 @@ import SwiftUI
 public struct ChatScreen: View {
 
   @Environment(CodexConfigService.self) private var configService
+  @Environment(\.xcodeObservationViewModel) private var xcodeObservationViewModel
+  @Environment(\.keyboardShortcutManager) private var keyboardShortcutManager
+
   @State private var viewModel = ChatViewModel()
   @State private var messageText = ""
   @State private var showingSettings = false
   @State private var contextManager = ContextManager()
+  @State private var xcodeContextManager = XcodeContextManager()
 
   // Session management state
   @State private var showSessionPicker = false
   @State private var availableSessions: [StoredSession] = []
   @State private var isLoadingSessions = false
   @State private var sessionLoadError: String?
+
+  // Keyboard shortcut integration
+  @State private var triggerFocus = false
 
   public init() {}
   
@@ -40,14 +47,40 @@ public struct ChatScreen: View {
         contextManager: contextManager,
         projectPath: viewModel.projectPath,
         onSend: { attachments in
-          // Get context before clearing
-          let context = contextManager.hasContext ? contextManager.getFormattedContext() : nil
+          // Get context before clearing (includes @ mentions and Xcode context)
+          var contextParts: [String] = []
+          if contextManager.hasContext {
+            contextParts.append(contextManager.getFormattedContext())
+          }
+
+          // Include live active file from Xcode (when not pinned)
+          if !xcodeContextManager.isPinnedActiveFile,
+             let activeFile = xcodeObservationViewModel?.workspaceModel.activeFile {
+            var fileContext = "Active file: \(activeFile.name)"
+            if let content = activeFile.content, !content.isEmpty {
+              fileContext += "\n```\n\(content)\n```"
+            }
+            contextParts.append(fileContext)
+          }
+
+          if xcodeContextManager.hasContext {
+            contextParts.append(xcodeContextManager.getFormattedContext())
+          }
+          let context = contextParts.isEmpty ? nil : contextParts.joined(separator: "\n\n")
+
           viewModel.sendMessage(messageText, context: context, attachments: attachments)
           messageText = ""
+
+          // Clear Xcode context after sending
+          xcodeContextManager.clearAll()
+          xcodeObservationViewModel?.dismissActiveFile()
         },
         onCancel: {
           viewModel.cancelRequest()
-        }
+        },
+        triggerFocus: $triggerFocus,
+        xcodeContextManager: xcodeContextManager,
+        xcodeObservationViewModel: xcodeObservationViewModel
       )
     }
     .frame(minWidth: 400, minHeight: 300)
@@ -112,6 +145,31 @@ public struct ChatScreen: View {
         Task {
           await loadSessions()
         }
+      }
+    }
+    .onChange(of: keyboardShortcutManager?.capturedText) { _, newText in
+      // Handle captured text from CMD+I shortcut
+      if let _ = newText, newText?.isEmpty == false {
+        // Capture the selection with file info and add to context manager
+        if let selection = xcodeObservationViewModel?.captureCurrentSelection() {
+          xcodeContextManager.addSelection(selection)
+        }
+        // Reset the captured text
+        keyboardShortcutManager?.resetCapturedText()
+      }
+    }
+    .onChange(of: keyboardShortcutManager?.shouldFocusTextEditor) { _, shouldFocus in
+      // Handle focus trigger from CMD+I shortcut
+      if shouldFocus == true {
+        triggerFocus = true
+        keyboardShortcutManager?.resetFocusTrigger()
+      }
+    }
+    .onChange(of: keyboardShortcutManager?.shouldRefreshObservation) { _, shouldRefresh in
+      // Handle observation refresh trigger
+      if shouldRefresh == true {
+        xcodeObservationViewModel?.restartObservation()
+        keyboardShortcutManager?.resetRefreshTrigger()
       }
     }
     .alert("Error", isPresented: Binding(

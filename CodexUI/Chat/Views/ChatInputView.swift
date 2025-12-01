@@ -17,6 +17,10 @@ struct ChatInputView: View {
   let onSend: ([FileAttachment]?) -> Void
   let onCancel: () -> Void
 
+  // Xcode context properties
+  let xcodeContextManager: XcodeContextManager?
+  let xcodeObservationViewModel: XcodeObservationViewModel?
+
   @FocusState private var isFocused: Bool
   @Binding var triggerFocus: Bool
 
@@ -47,7 +51,9 @@ struct ChatInputView: View {
     projectPath: String,
     onSend: @escaping ([FileAttachment]?) -> Void,
     onCancel: @escaping () -> Void,
-    triggerFocus: Binding<Bool> = .constant(false)
+    triggerFocus: Binding<Bool> = .constant(false),
+    xcodeContextManager: XcodeContextManager? = nil,
+    xcodeObservationViewModel: XcodeObservationViewModel? = nil
   ) {
     _text = text
     self.isLoading = isLoading
@@ -56,6 +62,8 @@ struct ChatInputView: View {
     self.onSend = onSend
     self.onCancel = onCancel
     _triggerFocus = triggerFocus
+    self.xcodeContextManager = xcodeContextManager
+    self.xcodeObservationViewModel = xcodeObservationViewModel
   }
 
   // MARK: - Computed Properties
@@ -99,7 +107,10 @@ struct ChatInputView: View {
       // Main input area
       VStack(alignment: .leading, spacing: 8) {
         VStack(alignment: .leading, spacing: 2) {
-          // Context bar showing selected files
+          // Xcode context bar (active file + selections)
+          xcodeContextBar
+
+          // Context bar showing selected files (from @ mentions)
           if contextManager.hasContext {
             contextBar
           }
@@ -125,6 +136,8 @@ struct ChatInputView: View {
     .animation(.easeInOut(duration: 0.2), value: showingFileSearch)
     .animation(.easeInOut(duration: 0.2), value: contextManager.hasContext)
     .animation(.easeInOut(duration: 0.2), value: attachments.count)
+    .animation(.easeInOut(duration: 0.2), value: xcodeContextManager?.codeSelections.count)
+    .animation(.easeInOut(duration: 0.2), value: xcodeContextManager?.isPinnedActiveFile)
     .onAppear {
       // Initialize file search view model
       if fileSearchViewModel == nil {
@@ -146,6 +159,75 @@ struct ChatInputView: View {
       allowsMultipleSelection: true
     ) { result in
       handleFileImport(result)
+    }
+  }
+}
+
+// MARK: - Xcode Context Bar
+
+extension ChatInputView {
+
+  /// Xcode context chip bar (active file + selections)
+  @ViewBuilder
+  private var xcodeContextBar: some View {
+    let activeFile: XcodeFileInfo? = {
+      if let manager = xcodeContextManager, manager.isPinnedActiveFile {
+        return manager.pinnedActiveFile
+      }
+      return xcodeObservationViewModel?.workspaceModel.activeFile
+    }()
+
+    let hasSelections = !(xcodeContextManager?.codeSelections.isEmpty ?? true)
+    let hasContent = activeFile != nil || hasSelections
+
+    if hasContent {
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: 8) {
+          // Active file chip (from Xcode or pinned)
+          if let file = activeFile {
+            CodeSelectionChipView(
+              model: .fromFile(file),
+              onRemove: {
+                if xcodeContextManager?.isPinnedActiveFile == true {
+                  xcodeContextManager?.unpinActiveFile()
+                } else {
+                  xcodeObservationViewModel?.dismissActiveFile()
+                }
+              },
+              isPinned: xcodeContextManager?.isPinnedActiveFile ?? false,
+              onTogglePin: {
+                xcodeContextManager?.togglePinActiveFile(currentFile: file)
+              }
+            )
+          }
+
+          // Divider between active file and selections
+          if activeFile != nil && hasSelections {
+            Divider()
+              .frame(height: 16)
+              .padding(.horizontal, 4)
+          }
+
+          // Code selection chips
+          if let selections = xcodeContextManager?.codeSelections {
+            ForEach(selections) { selection in
+              CodeSelectionChipView(
+                model: .fromSelection(selection),
+                onRemove: {
+                  xcodeContextManager?.removeSelection(id: selection.id)
+                }
+              )
+            }
+          }
+        }
+        .padding(.horizontal, 4)
+      }
+      .padding(.top, 6)
+      .padding(.horizontal, 4)
+      .transition(.asymmetric(
+        insertion: .move(edge: .top).combined(with: .opacity),
+        removal: .move(edge: .top).combined(with: .opacity)
+      ))
     }
   }
 }
