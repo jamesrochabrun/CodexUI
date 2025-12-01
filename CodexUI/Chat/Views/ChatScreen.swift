@@ -54,7 +54,7 @@ public struct ChatScreen: View {
           // Validate repo is selected before first message
           if !viewModel.hasSessionStarted && !viewModel.hasValidProjectPath {
             showRepoRequiredAlert = true
-            return
+            return false
           }
 
           // Get context before clearing (includes @ mentions and Xcode context)
@@ -78,12 +78,13 @@ public struct ChatScreen: View {
           }
           let context = contextParts.isEmpty ? nil : contextParts.joined(separator: "\n\n")
 
-          viewModel.sendMessage(messageText, context: context, attachments: attachments)
-          messageText = ""
-
-          // Clear Xcode context after sending
-          xcodeContextManager.clearAll()
-          xcodeObservationViewModel?.dismissActiveFile()
+          let success = viewModel.sendMessage(messageText, context: context, attachments: attachments)
+          if success {
+            // Clear Xcode context after sending (text cleared by ChatInputView)
+            xcodeContextManager.clearAll()
+            xcodeObservationViewModel?.dismissActiveFile()
+          }
+          return success
         },
         onCancel: {
           viewModel.cancelRequest()

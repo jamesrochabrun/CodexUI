@@ -14,7 +14,7 @@ struct ChatInputView: View {
   let isLoading: Bool
   let contextManager: ContextManager
   let projectPath: String
-  let onSend: ([FileAttachment]?) -> Void
+  let onSend: ([FileAttachment]?) -> Bool
   let onCancel: () -> Void
 
   // Xcode context properties
@@ -49,7 +49,7 @@ struct ChatInputView: View {
     isLoading: Bool,
     contextManager: ContextManager,
     projectPath: String,
-    onSend: @escaping ([FileAttachment]?) -> Void,
+    onSend: @escaping ([FileAttachment]?) -> Bool,
     onCancel: @escaping () -> Void,
     triggerFocus: Binding<Bool> = .constant(false),
     xcodeContextManager: XcodeContextManager? = nil,
@@ -478,11 +478,12 @@ extension ChatInputView {
     guard !isTextEmpty else { return }
     // Include attachments if any
     let messageAttachments = attachments.isEmpty ? nil : attachments
-    onSend(messageAttachments)
-    text = ""
-    // Clear context and attachments after sending
-    contextManager.clearAll()
-    attachments.removeAll()
+    // Only clear if send succeeded
+    if onSend(messageAttachments) {
+      text = ""
+      contextManager.clearAll()
+      attachments.removeAll()
+    }
   }
 }
 
