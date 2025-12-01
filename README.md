@@ -63,7 +63,7 @@ Users can also create their own profiles
 
 Configure global feature toggles that apply to all Codex sessions, regardless of the selected profile. These settings are stored in `~/.codex/config.toml` under the `[features]` section.
 
-<!-- TODO: Add screenshot of Global Features settings -->
+<img width="548" height="633" alt="Image" src="https://github.com/user-attachments/assets/e3f07dee-1016-431b-a121-6b7a72dc8a19" />
 
 **Standard Features:**
 - **View Image Tool** - Allow viewing images in responses (default: enabled)
