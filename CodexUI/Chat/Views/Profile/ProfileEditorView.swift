@@ -33,6 +33,7 @@ struct ProfileEditorView: View {
     @State private var approval: CodexApprovalMode = .onRequest
     @State private var fullAuto = false
     @State private var model = ""
+    @State private var reasoningEffort: ReasoningEffort = .medium
 
     // Error state
     @State private var error: String?
@@ -57,6 +58,7 @@ struct ProfileEditorView: View {
             approval: approval,
             fullAuto: fullAuto,
             model: model.isEmpty ? nil : model,
+            reasoningEffort: reasoningEffort,
             isBuiltIn: false
         )
     }
@@ -96,6 +98,9 @@ struct ProfileEditorView: View {
 
                     // Model section
                     modelSection
+
+                    // Reasoning effort section
+                    reasoningEffortSection
 
                     Divider()
 
@@ -273,6 +278,36 @@ struct ProfileEditorView: View {
         }
     }
 
+    private var reasoningEffortSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Reasoning Effort")
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            Picker("Reasoning", selection: $reasoningEffort) {
+                Text("Low").tag(ReasoningEffort.low)
+                Text("Medium").tag(ReasoningEffort.medium)
+                Text("High").tag(ReasoningEffort.high)
+            }
+            .pickerStyle(.segmented)
+
+            Text(reasoningEffortDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var reasoningEffortDescription: String {
+        switch reasoningEffort {
+        case .low:
+            return "Faster responses, less detailed reasoning"
+        case .medium:
+            return "Balanced speed and reasoning depth"
+        case .high:
+            return "More thorough reasoning, may be slower"
+        }
+    }
+
     private var cliPreviewSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("CLI Command")
@@ -362,6 +397,7 @@ struct ProfileEditorView: View {
         approval = profile.approval
         fullAuto = profile.fullAuto
         model = profile.model ?? ""
+        reasoningEffort = profile.reasoningEffort
     }
 
     private func saveProfile() {
@@ -375,6 +411,7 @@ struct ProfileEditorView: View {
                 updated.approval = approval
                 updated.fullAuto = fullAuto
                 updated.model = model.isEmpty ? nil : model
+                updated.reasoningEffort = reasoningEffort
                 try profileManager.updateProfile(updated)
             } else {
                 let newProfile = CodexProfile(
@@ -383,6 +420,7 @@ struct ProfileEditorView: View {
                     approval: approval,
                     fullAuto: fullAuto,
                     model: model.isEmpty ? nil : model,
+                    reasoningEffort: reasoningEffort,
                     isBuiltIn: false
                 )
                 try profileManager.createProfile(newProfile)

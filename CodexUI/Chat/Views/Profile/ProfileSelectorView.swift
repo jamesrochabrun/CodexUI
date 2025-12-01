@@ -10,7 +10,9 @@ import SwiftUI
 import CodexSDK
 
 struct ProfileSelectorView: View {
-  
+
+  var isDisabled: Bool = false
+
   @State private var profileManager = ProfileManager.shared
   @State private var isExpanded = false
   @State private var showingEditor = false
@@ -24,12 +26,18 @@ struct ProfileSelectorView: View {
       approval: .onRequest,
       fullAuto: false,
       model: nil,
+      reasoningEffort: .medium,
       isBuiltIn: true
     )
   }
   
   private var currentProfile: CodexProfile {
     profileManager.activeProfile ?? defaultProfile
+  }
+
+  /// System profiles that cannot be deleted (but can be edited)
+  private func isSystemProfile(_ id: String) -> Bool {
+    ["safe", "auto", "yolo"].contains(id)
   }
   
   var body: some View {
@@ -41,14 +49,15 @@ struct ProfileSelectorView: View {
         isExpanded: isExpanded,
         isCompact: !isExpanded,
         onTap: {
+          guard !isDisabled else { return }
           withAnimation(.easeInOut(duration: 0.2)) {
             isExpanded.toggle()
           }
         }
       )
-      
+
       // Expanded list of profiles
-      if isExpanded {
+      if isExpanded && !isDisabled {
         expandedContent
       }
     }
@@ -60,6 +69,7 @@ struct ProfileSelectorView: View {
       RoundedRectangle(cornerRadius: 6)
         .strokeBorder(isExpanded ? Color.secondary.opacity(0.15) : Color.clear, lineWidth: 0.5)
     )
+    .opacity(isDisabled ? 0.5 : 1.0)
     .sheet(isPresented: $showingEditor) {
       ProfileEditorView(mode: .create)
     }
@@ -84,11 +94,14 @@ struct ProfileSelectorView: View {
               isExpanded = false
             }
           },
-          onDelete: profile.isBuiltIn ? nil : {
+          onEdit: {
+            editingProfile = profile
+          },
+          onDelete: isSystemProfile(profile.id) ? nil : {
             try? profileManager.deleteProfile(profile.id)
           }
         )
-        
+
         Divider()
       }
     }

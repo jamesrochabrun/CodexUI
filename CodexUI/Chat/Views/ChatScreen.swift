@@ -92,9 +92,9 @@ public struct ChatScreen: View {
         xcodeContextManager: xcodeContextManager,
         xcodeObservationViewModel: xcodeObservationViewModel
       )
-      // Profile selector below input (left-aligned, compact)
-      HStack {
-        ProfileSelectorView()
+      // Profile selector (disabled once session has started - can't change flags on resume)
+      HStack(alignment: .top) {
+        ProfileSelectorView(isDisabled: viewModel.hasSessionStarted)
         Spacer()
       }
       .padding(.horizontal, 12)
@@ -259,14 +259,6 @@ public struct ChatScreen: View {
           .frame(width: 80, alignment: .leading)
         Text(viewModel.model)
           .foregroundStyle(Color.brandPrimary)
-      }
-
-      // Reasoning effort line
-      HStack(spacing: 0) {
-        Text("reasoning:")
-          .foregroundStyle(.secondary)
-          .frame(width: 80, alignment: .leading)
-        Text(viewModel.reasoningEffort)
       }
 
       // CLI version line

@@ -14,6 +14,7 @@ struct ProfileRowView: View {
     var isExpanded: Bool = false
     var isCompact: Bool = false
     let onTap: () -> Void
+    var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     var body: some View {
@@ -27,13 +28,25 @@ struct ProfileRowView: View {
             }
             .buttonStyle(.plain)
 
+            // Edit button (always available in full mode)
+            if !isCompact, let onEdit {
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            }
+
             // Delete button for custom profiles (only in full/expanded mode)
-            if !isCompact, !profile.isBuiltIn, let onDelete {
+            if !isCompact, let onDelete {
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
@@ -50,8 +63,8 @@ struct ProfileRowView: View {
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(.secondary)
 
-            // Risk level text
-            Text("(\(profile.riskLevel.rawValue) risk)")
+            // Reasoning effort with label
+            Text("· reasoning: \(profile.reasoningEffort.rawValue)")
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(.secondary)
 
@@ -74,13 +87,13 @@ struct ProfileRowView: View {
                 .font(.system(size: 14))
                 .foregroundStyle(isSelected ? Color.brandPrimary : .secondary.opacity(0.5))
 
-            // Profile name + CLI command
+            // Profile name + CLI command with risk
             VStack(alignment: .leading, spacing: 2) {
                 Text(profile.id)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.primary)
 
-                Text(profile.cliCommand)
+                Text("\(profile.cliCommand) (\(profile.riskLevel.rawValue) risk)")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -89,10 +102,14 @@ struct ProfileRowView: View {
 
             Spacer()
 
-            // Risk level text
-            Text("(\(profile.riskLevel.rawValue) risk)")
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.secondary)
+            // Reasoning effort badge with label
+            Text("reasoning: \(profile.reasoningEffort.rawValue)")
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.secondary.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
 
             // Chevron only on selected row
             if isSelected {

@@ -72,6 +72,7 @@ final class ProfileManager {
     // MARK: - Init
 
     private init() {
+        ensureBuiltInProfilesExist()
         loadProfiles()
         restoreActiveProfile()
     }
@@ -122,23 +123,22 @@ final class ProfileManager {
         activeProfileId = newProfile.id
     }
 
-    /// Update an existing custom profile
+    /// Update an existing profile (writes to TOML immediately)
     func updateProfile(_ profile: CodexProfile) throws {
-        guard !profile.isBuiltIn else {
-            throw ProfileError.cannotModifyBuiltIn
-        }
-
         try writeProfileToTOML(profile)
         loadProfiles()
     }
 
-    /// Delete a custom profile
+    /// System profile IDs that cannot be deleted
+    private static let systemProfileIds = ["safe", "auto", "yolo"]
+
+    /// Delete a profile (system profiles cannot be deleted)
     func deleteProfile(_ profileId: String) throws {
-        guard let profile = profiles.first(where: { $0.id == profileId }) else {
+        guard profiles.contains(where: { $0.id == profileId }) else {
             throw ProfileError.profileNotFound(profileId)
         }
 
-        guard !profile.isBuiltIn else {
+        guard !Self.systemProfileIds.contains(profileId) else {
             throw ProfileError.cannotModifyBuiltIn
         }
 
@@ -279,12 +279,22 @@ final class ProfileManager {
         // Parse model
         let model = data["model"]
 
+        // Parse reasoning effort
+        let reasoningEffort: ReasoningEffort
+        if let effortStr = data["model_reasoning_effort"],
+           let effort = ReasoningEffort(rawValue: effortStr) {
+            reasoningEffort = effort
+        } else {
+            reasoningEffort = .medium
+        }
+
         return CodexProfile(
             id: id,
             sandbox: sandbox,
             approval: approval,
             fullAuto: fullAuto,
             model: model,
+            reasoningEffort: reasoningEffort,
             isBuiltIn: false
         )
     }
@@ -325,6 +335,7 @@ final class ProfileManager {
         lines.append("sandbox = \"\(profile.sandbox.rawValue)\"")
         lines.append("approval = \"\(profile.approval.rawValue)\"")
         lines.append("full_auto = \(profile.fullAuto)")
+        lines.append("model_reasoning_effort = \"\(profile.reasoningEffort.rawValue)\"")
         if let model = profile.model, !model.isEmpty {
             lines.append("model = \"\(model)\"")
         }
@@ -421,5 +432,21 @@ final class ProfileManager {
     private func isValidProfileName(_ name: String) -> Bool {
         let pattern = #"^[a-zA-Z][a-zA-Z0-9_-]*$"#
         return name.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    /// Ensures built-in profiles exist in config.toml (required for --profile flag)
+    private func ensureBuiltInProfilesExist() {
+        for profile in CodexProfile.builtIn {
+            if !profileExistsInTOML(profile.id) {
+                try? writeProfileToTOML(profile)
+            }
+        }
+    }
+
+    private func profileExistsInTOML(_ profileId: String) -> Bool {
+        guard let content = try? String(contentsOfFile: configPath, encoding: .utf8) else {
+            return false
+        }
+        return content.contains("[profiles.\(profileId)]")
     }
 }
