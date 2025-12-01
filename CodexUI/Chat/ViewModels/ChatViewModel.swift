@@ -25,6 +25,9 @@ public final class ChatViewModel {
   /// Whether a session has been started (for UI purposes)
   private(set) var hasSessionStarted: Bool = false
 
+  /// Working directory for the current session (set per session, not globally)
+  var sessionWorkingDirectory: String?
+
   // MARK: - Settings
 
   private let settings = SettingsManager.shared
@@ -32,11 +35,12 @@ public final class ChatViewModel {
   var configService: CodexConfigService?
 
   var projectPath: String {
-    settings.projectPath
+    sessionWorkingDirectory ?? ""
   }
 
   var hasValidProjectPath: Bool {
-    settings.isValidGitRepo(settings.projectPath)
+    guard let dir = sessionWorkingDirectory, !dir.isEmpty else { return false }
+    return settings.isValidGitRepo(dir)
   }
 
   var model: String {
@@ -89,8 +93,8 @@ public final class ChatViewModel {
 
     // Set working directory so codex runs from the project directory
     // This is critical for resume commands which don't accept --cd
-    if !settings.projectPath.isEmpty {
-      config.workingDirectory = settings.projectPath
+    if let workingDir = sessionWorkingDirectory, !workingDir.isEmpty {
+      config.workingDirectory = workingDir
     }
 
     let homeDir = NSHomeDirectory()
@@ -220,8 +224,8 @@ public final class ChatViewModel {
         options.sandbox = .readOnly
         options.model = model
         // Set working directory via --cd flag (only on first turn)
-        if !settings.projectPath.isEmpty {
-          options.changeDirectory = settings.projectPath
+        if let workingDir = sessionWorkingDirectory, !workingDir.isEmpty {
+          options.changeDirectory = workingDir
         }
       }
 
@@ -513,6 +517,7 @@ public final class ChatViewModel {
     currentSessionId = nil
     hasSession = false
     hasSessionStarted = false
+    sessionWorkingDirectory = nil
     errorMessage = nil
     hasError = false
   }
@@ -530,9 +535,9 @@ public final class ChatViewModel {
     // Load messages
     self.messages = messages
 
-    // Update working directory if provided
+    // Update session working directory if provided
     if let dir = workingDirectory, !dir.isEmpty {
-      settings.projectPath = dir
+      self.sessionWorkingDirectory = dir
     }
 
     // Clear any error state
@@ -566,14 +571,15 @@ public final class ChatViewModel {
 
     print("[Session] Creating session with ID: \(sessionId)")
 
-    // Detect git worktree info
-    let gitInfo = await GitWorktreeDetector.detectWorktreeInfo(for: settings.projectPath)
+    // Detect git worktree info using session working directory
+    let workingDir = sessionWorkingDirectory ?? ""
+    let gitInfo = await GitWorktreeDetector.detectWorktreeInfo(for: workingDir)
 
     do {
       try await sessionManager.saveSession(
         id: sessionId,
         firstMessage: message,
-        workingDirectory: settings.projectPath.isEmpty ? nil : settings.projectPath,
+        workingDirectory: workingDir.isEmpty ? nil : workingDir,
         branchName: gitInfo?.branch,
         isWorktree: gitInfo?.isWorktree ?? false
       )

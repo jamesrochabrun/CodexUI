@@ -23,14 +23,12 @@ public final class SessionManager: @unchecked Sendable {
   public func startNewSession(chatViewModel: ChatViewModel, workingDirectory: String? = nil) {
     // Clear any existing conversation
     chatViewModel.clearConversation()
-    
-    // Use provided directory, or fall back to settings
-    let directoryToUse = workingDirectory ?? SettingsManager.shared.projectPath
-    
-    if !directoryToUse.isEmpty {
-      SettingsManager.shared.projectPath = directoryToUse
+
+    // Set the session working directory if provided
+    if let dir = workingDirectory, !dir.isEmpty {
+      chatViewModel.sessionWorkingDirectory = dir
     }
-    
+
     // Note: Actual session saving happens when the first message is sent
     // and we have a session ID
   }
@@ -50,14 +48,14 @@ public final class SessionManager: @unchecked Sendable {
     }
     
     await MainActor.run {
-      // Use the session's working directory, or fall back to current settings
-      let workingDirectory = freshSession.workingDirectory ?? SettingsManager.shared.projectPath
-      
+      // Use the session's stored working directory
+      let workingDirectory = freshSession.workingDirectory
+
       // Inject the session into the chat view model
       chatViewModel.injectSession(
         sessionId: freshSession.id,
         messages: freshSession.messages,
-        workingDirectory: workingDirectory.isEmpty ? nil : workingDirectory
+        workingDirectory: workingDirectory?.isEmpty == false ? workingDirectory : nil
       )
     }
   }
