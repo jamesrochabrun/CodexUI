@@ -32,6 +32,7 @@ public final class ChatViewModel {
 
   private let settings = SettingsManager.shared
   private let sessionManager = SessionManager.shared
+  private let profileManager = ProfileManager.shared
   var configService: CodexConfigService?
 
   var projectPath: String {
@@ -213,16 +214,28 @@ public final class ChatViewModel {
       options.jsonEvents = !hasSession
       options.promptViaStdin = true
 
-      // Full auto mode only on first turn (resume rejects it)
-      options.fullAuto = !hasSession
-
       // Timeout to avoid indefinite hangs (5 minutes for complex queries)
       options.timeout = 300
 
-      // Sandbox/model/changeDirectory only on first turn (resume rejects these flags)
+      // Sandbox/model/fullAuto/changeDirectory only on first turn (resume rejects these flags)
       if !hasSession {
-        options.sandbox = .readOnly
-        options.model = model
+        // Apply active profile settings if available
+        if let profile = profileManager.activeProfile {
+          options.sandbox = profile.sandbox
+          options.approval = profile.approval
+          options.fullAuto = profile.fullAuto
+          if let profileModel = profile.model, !profileModel.isEmpty {
+            options.model = profileModel
+          } else {
+            options.model = model
+          }
+        } else {
+          // Default behavior when no profile is selected
+          options.sandbox = .readOnly
+          options.fullAuto = true
+          options.model = model
+        }
+
         // Set working directory via --cd flag (only on first turn)
         if let workingDir = sessionWorkingDirectory, !workingDir.isEmpty {
           options.changeDirectory = workingDir

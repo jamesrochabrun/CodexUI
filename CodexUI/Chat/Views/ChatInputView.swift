@@ -131,7 +131,6 @@ struct ChatInputView: View {
         .overlay(inputBorder)
       }
       .padding(.horizontal, 12)
-      .padding(.bottom, 12)
     }
     .animation(.easeInOut(duration: 0.2), value: showingFileSearch)
     .animation(.easeInOut(duration: 0.2), value: contextManager.hasContext)
