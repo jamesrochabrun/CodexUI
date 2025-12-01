@@ -59,6 +59,21 @@ Users can also create their own profiles
 
 <img width="539" height="630" alt="Image" src="https://github.com/user-attachments/assets/73a433da-c767-45eb-90a4-ee7cdf4332b2" />
 
+## Global Features
+
+Configure global feature toggles that apply to all Codex sessions, regardless of the selected profile. These settings are stored in `~/.codex/config.toml` under the `[features]` section.
+
+<!-- TODO: Add screenshot of Global Features settings -->
+
+**Standard Features:**
+- **View Image Tool** - Allow viewing images in responses (default: enabled)
+- **Web Search** - Search the web for up-to-date information (default: disabled)
+
+**Advanced Features** (hidden by default):
+- Unified Exec, Rust MCP Client, Apply Patch Freeform, Sandbox Command Assessment, Ghost Commit
+
+Access these settings via the Settings panel in CodexUI.
+
 ## Sessions
 
 Easy access to your Codex sessions, initiated in CodexUI

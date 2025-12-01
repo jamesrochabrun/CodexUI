@@ -12,6 +12,7 @@ struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(\.permissionsService) private var permissionsService
   @State private var settings = SettingsManager.shared
+  @State private var featuresManager = FeaturesManager.shared
   @State private var isAccessibilityGranted = false
   @State private var cancellables = Set<AnyCancellable>()
 
@@ -38,13 +39,17 @@ struct SettingsView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
           xcodeIntegrationSection
+
+          Divider()
+
+          globalFeaturesSection
         }
         .padding()
       }
 
       Spacer()
     }
-    .frame(width: 500, height: 400)
+    .frame(width: 500, height: 550)
     .onAppear {
       observePermissions()
     }
@@ -137,6 +142,79 @@ struct SettingsView: View {
         Text("Requires accessibility permission to be enabled")
           .font(.caption2)
           .foregroundStyle(.tertiary)
+      }
+    }
+  }
+
+  // MARK: - Global Features
+
+  private var globalFeaturesSection: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text("Global Features")
+        .font(.headline)
+
+      Text("These settings apply to all Codex sessions regardless of the selected profile.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      // Standard features (always visible)
+      ForEach(CodexFeature.standard) { feature in
+        featureToggle(for: feature)
+      }
+
+      // Advanced settings toggle
+      advancedSettingsSection
+    }
+  }
+
+  private func featureToggle(for feature: CodexFeature) -> some View {
+    Toggle(isOn: Binding(
+      get: { featuresManager.isEnabled(feature.id) },
+      set: { featuresManager.setEnabled($0, for: feature.id) }
+    )) {
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 6) {
+          Text(feature.name)
+            .font(.subheadline)
+          if feature.isExperimental {
+            Text("experimental")
+              .font(.caption2)
+              .foregroundStyle(.orange)
+              .padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .background(Color.orange.opacity(0.15))
+              .clipShape(Capsule())
+          }
+        }
+        Text(feature.description)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .toggleStyle(.switch)
+  }
+
+  private var advancedSettingsSection: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Toggle(isOn: $featuresManager.showAdvancedSettings) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Show Advanced Settings")
+            .font(.subheadline)
+          Text("Display experimental features (may be unstable)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
+      .toggleStyle(.switch)
+
+      if featuresManager.showAdvancedSettings {
+        VStack(alignment: .leading, spacing: 8) {
+          ForEach(CodexFeature.experimental) { feature in
+            featureToggle(for: feature)
+          }
+        }
+        .padding(.leading, 16)
+        .padding(.top, 4)
       }
     }
   }
