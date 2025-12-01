@@ -108,8 +108,12 @@ struct CodexProfile: Identifiable, Codable, Equatable, Sendable {
         switch id {
         case "safe":
             return "Read-only sandbox with approval prompts"
+        case "ci":
+            return "Read-only, non-interactive - for CI pipelines"
+        case "ask":
+            return "Workspace writes with approval prompts"
         case "auto":
-            return "Workspace writes with auto-approval"
+            return "Workspace writes without prompting"
         case "yolo":
             return "Full access, no approvals - use with caution"
         default:
@@ -122,6 +126,24 @@ struct CodexProfile: Identifiable, Codable, Equatable, Sendable {
         CodexProfile(
             id: "safe",
             sandbox: .readOnly,
+            approval: .onRequest,
+            fullAuto: false,
+            model: nil,
+            reasoningEffort: .medium,
+            isBuiltIn: true
+        ),
+        CodexProfile(
+            id: "ci",
+            sandbox: .readOnly,
+            approval: .never,
+            fullAuto: false,
+            model: nil,
+            reasoningEffort: .medium,
+            isBuiltIn: true
+        ),
+        CodexProfile(
+            id: "ask",
+            sandbox: .workspaceWrite,
             approval: .onRequest,
             fullAuto: false,
             model: nil,

@@ -39,13 +39,17 @@ Without this permission, CodexUI works but cannot read your Xcode context.
 
 ## Profiles
 
-CodexUI supports security profiles that control sandbox and approval behavior:
+CodexUI comes with pre-built profiles that control sandbox and approval behavior:
 
-| Profile | Sandbox | Approvals | Use Case |
-|---------|---------|-----------|----------|
-| **safe** | Read-only | Required | Recommended for new users |
-| **auto** | Workspace writes | Auto-approved | Trusted projects |
-| **yolo** | Full access | None | Use with caution |
+| Intent | Flags | Effect |
+|--------|-------|--------|
+| Safe read-only browsing | `--sandbox read-only --ask-for-approval on-request` | Codex can read files and answer questions. Requires approval to make edits, run commands, or access network. |
+| Read-only non-interactive (CI) | `--sandbox read-only --ask-for-approval never` | Reads only; never escalates |
+| Let it edit the repo, ask if risky | `--sandbox workspace-write --ask-for-approval on-request` | Codex can read files, make edits, and run commands in the workspace. Requires approval for actions outside the workspace or for network access. |
+| Auto (preset; trusted repos) | `--full-auto` | Codex runs sandboxed commands that can write inside the workspace without prompting. Escalates only when it must leave the sandbox. |
+| YOLO (not recommended) | `--dangerously-bypass-approvals-and-sandbox` | No sandbox; no prompts |
+
+See [Codex sandbox documentation](https://github.com/openai/codex/blob/main/docs/sandbox.md) for more details.
 
 ## Development
 
