@@ -92,6 +92,14 @@ public struct ChatScreen: View {
         xcodeContextManager: xcodeContextManager,
         xcodeObservationViewModel: xcodeObservationViewModel
       )
+      // Profile selector below input (left-aligned, compact)
+      HStack {
+        ProfileSelectorView()
+        Spacer()
+      }
+      .padding(.horizontal, 12)
+      .padding(.top, 4)
+      .padding(.bottom, 8)
     }
     .frame(minWidth: 400, minHeight: 300)
     .toolbar {

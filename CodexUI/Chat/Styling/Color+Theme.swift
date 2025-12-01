@@ -145,6 +145,19 @@ extension Color {
   static let lavenderGray = Color(hex: "#E9D5FF")  // Subtle purple accent
 }
 
+// MARK: - Risk Level Colors (Profile Selector)
+
+extension Color {
+  /// Low risk - safe operations (read-only, approval required)
+  static let riskLow = Color(hex: "#22C55E")  // Green 500
+
+  /// Medium risk - workspace modifications with some approval
+  static let riskMedium = Color(hex: "#F59E0B")  // Amber 500
+
+  /// High risk - full access or no approvals
+  static let riskHigh = Color(hex: "#EF4444")  // Red 500
+}
+
 // MARK: - Background Colors
 
 extension Color {
