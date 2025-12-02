@@ -3,6 +3,7 @@
 //  CodexUI
 //
 
+import CodeWhisper
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -20,6 +21,9 @@ struct ChatInputView: View {
   // Xcode context properties
   let xcodeContextManager: XcodeContextManager?
   let xcodeObservationViewModel: XcodeObservationViewModel?
+
+  // Voice mode adapter
+  let voiceModeAdapter: ChatViewModelVoiceModeAdapter?
 
   @FocusState private var isFocused: Bool
   @Binding var triggerFocus: Bool
@@ -53,7 +57,8 @@ struct ChatInputView: View {
     onCancel: @escaping () -> Void,
     triggerFocus: Binding<Bool> = .constant(false),
     xcodeContextManager: XcodeContextManager? = nil,
-    xcodeObservationViewModel: XcodeObservationViewModel? = nil
+    xcodeObservationViewModel: XcodeObservationViewModel? = nil,
+    voiceModeAdapter: ChatViewModelVoiceModeAdapter? = nil
   ) {
     _text = text
     self.isLoading = isLoading
@@ -64,6 +69,7 @@ struct ChatInputView: View {
     _triggerFocus = triggerFocus
     self.xcodeContextManager = xcodeContextManager
     self.xcodeObservationViewModel = xcodeObservationViewModel
+    self.voiceModeAdapter = voiceModeAdapter
   }
 
   // MARK: - Computed Properties
@@ -123,8 +129,13 @@ struct ChatInputView: View {
           HStack(alignment: .center) {
             attachmentButton
             textEditor
-            actionButton
+            if voiceModeAdapter != nil && text.isEmpty && !isLoading {
+              voiceModeButton
+            } else {
+              actionButton
+            }
           }
+          .animation(.easeInOut, value: text.isEmpty)
         }
         .background(Color(NSColor.controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -293,6 +304,18 @@ extension ChatInputView {
     .buttonStyle(.plain)
     .padding(.leading, 8)
     .help("Attach files")
+  }
+
+  /// Voice mode button
+  @ViewBuilder
+  private var voiceModeButton: some View {
+    if let adapter = voiceModeAdapter {
+      CodeWhisperButton(
+        chatInterface: adapter,
+        configuration: .sttOnly
+      )
+      .padding(.trailing, 2)
+    }
   }
 
   /// Action button (send/cancel)

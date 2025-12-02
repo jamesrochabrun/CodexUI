@@ -30,6 +30,9 @@ public struct ChatScreen: View {
   @State private var showInvalidRepoAlert = false
   @State private var showRepoRequiredAlert = false
 
+  // Voice mode adapter
+  @State private var voiceModeAdapter: ChatViewModelVoiceModeAdapter?
+
   public init() {}
   
   public var body: some View {
@@ -91,7 +94,8 @@ public struct ChatScreen: View {
         },
         triggerFocus: $triggerFocus,
         xcodeContextManager: xcodeContextManager,
-        xcodeObservationViewModel: xcodeObservationViewModel
+        xcodeObservationViewModel: xcodeObservationViewModel,
+        voiceModeAdapter: voiceModeAdapter
       )
       // Profile selector (disabled once session has started - can't change flags on resume)
       HStack(alignment: .top) {
@@ -148,6 +152,7 @@ public struct ChatScreen: View {
     }
     .task {
       viewModel.configService = configService
+      voiceModeAdapter = ChatViewModelVoiceModeAdapter(chatViewModel: viewModel)
       await loadSessions()
     }
     .onChange(of: viewModel.currentSessionId) { oldValue, newValue in

@@ -13,6 +13,7 @@
 		7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC582ED5765400ADC068 /* HighlightSwift */; };
 		7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */; };
 		7BB481AD2EDE40FB00DFE849 /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB481AC2EDE40FB00DFE849 /* CodexSDK */; };
+		7BB484692EDE65A900DFE849 /* CodeWhisper in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB484682EDE65A900DFE849 /* CodeWhisper */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 				7B7ADC562ED5762700ADC068 /* Down in Frameworks */,
 				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
 				7BB481AD2EDE40FB00DFE849 /* CodexSDK in Frameworks */,
+				7BB484692EDE65A900DFE849 /* CodeWhisper in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -133,6 +135,7 @@
 				7B5F86EE2EDC291A00565978 /* SQLite */,
 				7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */,
 				7BB481AC2EDE40FB00DFE849 /* CodexSDK */,
+				7BB484682EDE65A900DFE849 /* CodeWhisper */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -222,6 +225,7 @@
 				7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */,
 				7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */,
+				7BB484672EDE65A900DFE849 /* XCRemoteSwiftPackageReference "CodeWhisper" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
@@ -426,6 +430,7 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "CodexUI needs microphone access for voice input";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -470,6 +475,7 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "CodexUI needs microphone access for voice input";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -685,6 +691,14 @@
 				version = 1.0.3;
 			};
 		};
+		7BB484672EDE65A900DFE849 /* XCRemoteSwiftPackageReference "CodeWhisper" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jamesrochabrun/CodeWhisper";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.9;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -716,6 +730,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */;
 			productName = CodexSDK;
+		};
+		7BB484682EDE65A900DFE849 /* CodeWhisper */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7BB484672EDE65A900DFE849 /* XCRemoteSwiftPackageReference "CodeWhisper" */;
+			productName = CodeWhisper;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
