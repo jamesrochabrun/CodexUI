@@ -2,6 +2,8 @@
 
 A native macOS application that provides a graphical interface for the [OpenAI Codex CLI](https://github.com/openai/codex). CodexUI enables AI-assisted coding with seamless Xcode integration.
 
+https://github.com/user-attachments/assets/071033ba-64a3-4b60-8fb4-b05dea2a688a
+
 ## How It Works
 
 CodexUI spawns the Codex CLI as a subprocess:
