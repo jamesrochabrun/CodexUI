@@ -82,8 +82,27 @@ Easy access to your Codex sessions, initiated in CodexUI
 
 ## Context Management
 
-<img width="580" height="676" alt="Screenshot 2025-12-01 at 3 17 12 PM" src="https://github.com/user-attachments/assets/41733d75-2028-4b55-8824-f70ff05c2036" />
+<img width="580" height="676" alt="Screenshot 2025-12-01 at 3 17 12 PM" src="https://github.com/user-attachments/assets/41733d75-2028-4b55-8824-f70ff05c2036" />
 
+## Voice Mode (Experimental)
+
+CodexUI includes experimental voice input powered by [CodeWhisper](https://github.com/jamesrochabrun/CodeWhisper).
+
+### Requirements
+
+**Important:** Voice mode requires a separate OpenAI API key for speech-to-text transcription (Whisper API). This is **not** the same as your Codex CLI credentials - you need to provide an OpenAI API key separately.
+
+### Setup
+
+1. Long-press the voice button (waveform icon) in the chat input area
+2. Enter your OpenAI API key in the CodeWhisper settings
+3. Grant microphone permission when prompted
+
+### Usage
+
+- When the text field is empty, a voice button appears instead of the send button
+- Tap to start recording, tap again to stop
+- Your speech will be transcribed and sent as a message
 
 ## Development
 
@@ -100,6 +119,7 @@ Easy access to your Codex sessions, initiated in CodexUI
 - **highlightswift** - Syntax highlighting
 - **SQLite.swift** - Session persistence
 - **KeyboardShortcuts** - Global keyboard shortcuts
+- **CodeWhisper** - Voice input (STT)
 
 ### Project Structure
 
