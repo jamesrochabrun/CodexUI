@@ -284,6 +284,12 @@ public final class ChatViewModel {
                 self.updateAssistantMessage(id: messageId, content: buffer.stdout)
               }
 
+            case ("thread.started", _):
+              // Capture the CLI's actual session ID from the thread.started event
+              if let threadId = json.threadId {
+                self.updateCliSessionId(threadId)
+              }
+
             default:
               break
             }
@@ -297,6 +303,11 @@ public final class ChatViewModel {
             // Collect stderr for fallback display
             if !line.isEmpty {
               buffer.stderr += line + "\n"
+            }
+
+            // Capture the CLI session ID if present
+            if line.lowercased().contains("session id:") {
+              self.extractAndUpdateSessionId(from: line)
             }
 
             // When in resume mode (no JSON events), parse stderr for display
@@ -529,6 +540,96 @@ public final class ChatViewModel {
     sessionWorkingDirectory = nil
     errorMessage = nil
     hasError = false
+  }
+
+  /// Clears UI while keeping the session active for continued conversation
+  /// This allows starting fresh visually while maintaining the CLI session
+  func resumeInNewSession() {
+    guard currentSessionId != nil else { return }
+
+    // Clear messages but preserve session state
+    messages.removeAll()
+    errorMessage = nil
+    hasError = false
+
+    // Keep: currentSessionId, hasSession, hasSessionStarted, sessionWorkingDirectory
+    // Next message will continue the CLI session via --resume-last-session
+  }
+
+  /// Launches Terminal.app with the current session
+  /// - Returns: An error if launching fails, nil on success
+  func launchTerminalWithSession() -> Error? {
+    guard let sessionId = currentSessionId else {
+      return NSError(
+        domain: "ChatViewModel",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "No active session to launch"]
+      )
+    }
+
+    return TerminalLauncher.launchTerminalWithSession(sessionId, projectPath: projectPath)
+  }
+
+  /// Sets an error message to be displayed
+  func setError(_ message: String) {
+    errorMessage = message
+    hasError = true
+  }
+
+  /// Updates the session ID with the CLI's actual thread ID
+  private func updateCliSessionId(_ cliSessionId: String) {
+    guard !cliSessionId.isEmpty else { return }
+
+    // Only update if different from current
+    guard let oldId = currentSessionId, oldId != cliSessionId else { return }
+
+    print("[Session] Updating session ID from \(oldId) to CLI thread ID: \(cliSessionId)")
+
+    // Update in-memory
+    currentSessionId = cliSessionId
+
+    // Update in storage
+    Task {
+      do {
+        try await sessionManager.updateSessionId(oldId: oldId, newId: cliSessionId)
+        print("[Session] Session ID updated in storage to CLI ID")
+      } catch {
+        print("[Session] Failed to update session ID in storage: \(error)")
+      }
+    }
+  }
+
+  /// Extracts the CLI session ID from a stderr line and updates the stored session
+  private func extractAndUpdateSessionId(from line: String) {
+    // Line format is typically "Session ID: <uuid>" or "session id: <uuid>"
+    let lowercased = line.lowercased()
+    guard let range = lowercased.range(of: "session id:") else { return }
+
+    // Extract everything after "session id:"
+    let afterPrefix = line[range.upperBound...].trimmingCharacters(in: .whitespaces)
+
+    // The session ID should be the first word/token
+    let cliSessionId = afterPrefix.components(separatedBy: .whitespaces).first ?? afterPrefix
+
+    guard !cliSessionId.isEmpty else { return }
+
+    // Only update if different from current
+    guard let oldId = currentSessionId, oldId != cliSessionId else { return }
+
+    print("[Session] Updating session ID from \(oldId) to CLI ID: \(cliSessionId)")
+
+    // Update in-memory
+    currentSessionId = cliSessionId
+
+    // Update in storage
+    Task {
+      do {
+        try await sessionManager.updateSessionId(oldId: oldId, newId: cliSessionId)
+        print("[Session] Session ID updated in storage")
+      } catch {
+        print("[Session] Failed to update session ID in storage: \(error)")
+      }
+    }
   }
 
   /// Injects a restored session into the view model
