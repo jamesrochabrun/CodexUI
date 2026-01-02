@@ -33,6 +33,11 @@ public struct ChatScreen: View {
   // Voice mode adapter
   @State private var voiceModeAdapter: ChatViewModelVoiceModeAdapter?
 
+  // Session actions state
+  @State private var showSessionActions = false
+  @State private var showResumeSuccessAlert = false
+  @State private var sessionActionFeedback = false
+
   public init() {}
   
   public var body: some View {
@@ -114,6 +119,15 @@ public struct ChatScreen: View {
             .font(.title2)
         }
         .help("Sessions")
+      }
+      ToolbarItem(placement: .automatic) {
+        if viewModel.currentSessionId != nil {
+          Button(action: { showSessionActions = true }) {
+            Image(systemName: sessionActionFeedback ? "checkmark" : "ellipsis.circle")
+              .font(.title2)
+          }
+          .help("Session Actions")
+        }
       }
       ToolbarItem(placement: .automatic) {
         Button(action: { showingSettings = true }) {
@@ -218,6 +232,22 @@ public struct ChatScreen: View {
       Button("Cancel", role: .cancel) { }
     } message: {
       Text("Please select a repository before sending your first message.")
+    }
+    .confirmationDialog("Session Actions", isPresented: $showSessionActions) {
+      Button("Resume in New Session") {
+        resumeInNewSession()
+      }
+      Button("Open in Terminal") {
+        openInTerminal()
+      }
+      Button("Cancel", role: .cancel) { }
+    } message: {
+      Text("Choose how to continue this session")
+    }
+    .alert("Session Resumed", isPresented: $showResumeSuccessAlert) {
+      Button("OK", role: .cancel) { }
+    } message: {
+      Text("Conversation cleared. Next message continues the same session.")
     }
   }
   
@@ -442,6 +472,41 @@ public struct ChatScreen: View {
         await loadSessions()
       } catch {
         print("Failed to delete all sessions: \(error)")
+      }
+    }
+  }
+
+  // MARK: - Session Actions
+
+  private func resumeInNewSession() {
+    viewModel.resumeInNewSession()
+
+    // Show success alert
+    showResumeSuccessAlert = true
+
+    // Auto-dismiss after 1.5 seconds
+    Task { @MainActor in
+      try? await Task.sleep(for: .seconds(1.5))
+      showResumeSuccessAlert = false
+    }
+
+    // Show checkmark feedback
+    sessionActionFeedback = true
+    Task { @MainActor in
+      try? await Task.sleep(for: .seconds(2))
+      sessionActionFeedback = false
+    }
+  }
+
+  private func openInTerminal() {
+    if let error = viewModel.launchTerminalWithSession() {
+      viewModel.setError(error.localizedDescription)
+    } else {
+      // Show checkmark feedback
+      sessionActionFeedback = true
+      Task { @MainActor in
+        try? await Task.sleep(for: .seconds(2))
+        sessionActionFeedback = false
       }
     }
   }
