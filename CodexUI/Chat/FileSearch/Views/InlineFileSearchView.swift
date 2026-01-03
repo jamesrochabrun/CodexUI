@@ -1,14 +1,55 @@
 //
-//  InlineFileSearchView.swift
+//  InlineSearchView.swift
 //  CodexUI
 //
 
+import Observation
 import SwiftUI
 
-/// Displays inline file search results for @ mentions
-struct InlineFileSearchView: View {
-  @Bindable var viewModel: FileSearchViewModel
-  let onSelect: (FileResult) -> Void
+protocol InlineSearchResult: Identifiable {
+  var title: String { get }
+  var subtitle: String { get }
+  var iconName: String { get }
+  var iconColor: Color { get }
+}
+
+protocol InlineSearchViewModelProtocol: Observable, AnyObject {
+  associatedtype Result: InlineSearchResult
+  var searchQuery: String { get set }
+  var isSearching: Bool { get }
+  var searchResults: [Result] { get }
+  var selectedIndex: Int { get set }
+}
+
+struct InlineSearchConfiguration {
+  let triggerSymbol: String
+  let noun: String
+  let showsResultsWhenQueryEmpty: Bool
+  let emptyStateHint: String
+  let resultsHint: String
+
+  static let fileSearch = InlineSearchConfiguration(
+    triggerSymbol: "@",
+    noun: "files",
+    showsResultsWhenQueryEmpty: false,
+    emptyStateHint: "Try a different search term",
+    resultsHint: "Use ↑↓ to navigate, Enter to select, Esc to cancel"
+  )
+
+  static let skillSearch = InlineSearchConfiguration(
+    triggerSymbol: "$",
+    noun: "skills",
+    showsResultsWhenQueryEmpty: true,
+    emptyStateHint: "Try a different search term",
+    resultsHint: "Use ↑↓ to navigate, Enter to select, Esc to cancel"
+  )
+}
+
+/// Displays inline search results for @ and $ mentions.
+struct InlineSearchView<ViewModel: InlineSearchViewModelProtocol>: View {
+  @Bindable var viewModel: ViewModel
+  let configuration: InlineSearchConfiguration
+  let onSelect: (ViewModel.Result) -> Void
   let onDismiss: () -> Void
 
   @State private var hoveredIndex: Int? = nil
@@ -16,9 +57,14 @@ struct InlineFileSearchView: View {
   // MARK: - Computed Properties
 
   private var shouldShowEmptyState: Bool {
-    viewModel.searchResults.isEmpty &&
-    !viewModel.searchQuery.isEmpty &&
-    !viewModel.isSearching
+    let allowEmptyQuery = configuration.showsResultsWhenQueryEmpty && viewModel.searchQuery.isEmpty
+    return viewModel.searchResults.isEmpty &&
+    !viewModel.isSearching &&
+    (!viewModel.searchQuery.isEmpty || allowEmptyQuery)
+  }
+
+  private var shouldShowResults: Bool {
+    configuration.showsResultsWhenQueryEmpty || !viewModel.searchQuery.isEmpty
   }
 
   // MARK: - Body
@@ -26,7 +72,7 @@ struct InlineFileSearchView: View {
   var body: some View {
     VStack(spacing: 0) {
       headerBar
-      if !viewModel.searchQuery.isEmpty {
+      if shouldShowResults {
         Divider()
         resultsArea
       }
@@ -38,6 +84,7 @@ struct InlineFileSearchView: View {
 
   private var headerBar: some View {
     HeaderBar(
+      configuration: configuration,
       searchQuery: viewModel.searchQuery,
       isSearching: viewModel.isSearching,
       resultsCount: viewModel.searchResults.count,
@@ -53,7 +100,7 @@ struct InlineFileSearchView: View {
         VStack(spacing: 0) {
           searchResultsList
           if !viewModel.searchResults.isEmpty {
-            Label("Use ↑↓ to navigate, Enter to select, Esc to cancel", systemImage: "keyboard")
+            Label(configuration.resultsHint, systemImage: "keyboard")
               .font(.caption2)
               .foregroundColor(.secondary)
               .padding(.bottom, 8)
@@ -83,12 +130,11 @@ struct InlineFileSearchView: View {
     }
   }
 
-  private func resultRow(for result: FileResult, at index: Int) -> some View {
-    FileSearchResultRow(
+  private func resultRow(for result: ViewModel.Result, at index: Int) -> some View {
+    InlineSearchResultRow(
       result: result,
       isSelected: index == viewModel.selectedIndex,
-      isHovered: index == hoveredIndex,
-      searchQuery: viewModel.searchQuery
+      isHovered: index == hoveredIndex
     )
     .id(result.id)
     .onTapGesture {
@@ -121,11 +167,12 @@ struct InlineFileSearchView: View {
         .font(.title2)
         .foregroundColor(.secondary)
 
-      Text("No files found for '\(viewModel.searchQuery)'")
+      let querySuffix = viewModel.searchQuery.isEmpty ? "" : " for '\(viewModel.searchQuery)'"
+      Text("No \(configuration.noun) found\(querySuffix)")
         .font(.body)
         .foregroundColor(.secondary)
 
-      Text("Try a different search term")
+      Text(configuration.emptyStateHint)
         .font(.caption)
         .foregroundColor(Color.secondary.opacity(0.6))
     }
@@ -134,65 +181,12 @@ struct InlineFileSearchView: View {
   }
 }
 
-// MARK: - File Search Result Row
+// MARK: - Search Result Row
 
-private struct FileSearchResultRow: View {
-  let result: FileResult
+private struct InlineSearchResultRow<Result: InlineSearchResult>: View {
+  let result: Result
   let isSelected: Bool
   let isHovered: Bool
-  let searchQuery: String
-
-  @Environment(\.colorScheme) private var colorScheme
-
-  private var backgroundColor: Color {
-    if isSelected {
-      return Color.brandPrimary.opacity(0.15)
-    } else if isHovered {
-      return Color.gray.opacity(0.1)
-    }
-    return Color.clear
-  }
-
-  private var iconColor: Color {
-    // Use file extension to determine icon color
-    switch result.fileExtension {
-    case "swift":
-      return .orange
-    case "js", "jsx", "ts", "tsx":
-      return .yellow
-    case "py":
-      return .blue
-    case "rb":
-      return .red
-    case "go":
-      return .cyan
-    case "rs":
-      return .brown
-    case "java", "kt":
-      return .purple
-    case "cs":
-      return .green
-    case "md":
-      return .gray
-    default:
-      return .secondary
-    }
-  }
-
-  private var fileIcon: String {
-    switch result.fileExtension {
-    case "swift":
-      return "swift"
-    case "folder":
-      return "folder"
-    case "md":
-      return "doc.richtext"
-    case "json", "yml", "yaml", "xml":
-      return "doc.badge.gearshape"
-    default:
-      return "doc.text"
-    }
-  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -210,20 +204,20 @@ private struct FileSearchResultRow: View {
   // MARK: - Subviews
 
   private var fileIconView: some View {
-    Image(systemName: fileIcon)
+    Image(systemName: result.iconName)
       .font(.body)
-      .foregroundColor(iconColor)
+      .foregroundColor(result.iconColor)
       .frame(width: 20)
   }
 
   private var fileInfoView: some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(result.fileName)
+      Text(result.title)
         .font(.body)
         .fontWeight(.medium)
         .foregroundColor(.primary)
 
-      Text(result.filePath)
+      Text(result.subtitle)
         .font(.caption)
         .foregroundColor(.secondary)
         .lineLimit(1)
@@ -239,11 +233,21 @@ private struct FileSearchResultRow: View {
         .foregroundColor(.secondary)
     }
   }
+
+  private var backgroundColor: Color {
+    if isSelected {
+      return Color.brandPrimary.opacity(0.15)
+    } else if isHovered {
+      return Color.gray.opacity(0.1)
+    }
+    return Color.clear
+  }
 }
 
 // MARK: - Header Bar Component
 
 private struct HeaderBar: View {
+  let configuration: InlineSearchConfiguration
   let searchQuery: String
   let isSearching: Bool
   let resultsCount: Int
@@ -262,7 +266,8 @@ private struct HeaderBar: View {
   }
 
   private var searchLabel: some View {
-    Label("Searching for: @\(searchQuery)", systemImage: "magnifyingglass")
+    let query = searchQuery.isEmpty ? configuration.triggerSymbol : "\(configuration.triggerSymbol)\(searchQuery)"
+    return Label("Searching for: \(query)", systemImage: "magnifyingglass")
       .font(.caption)
       .foregroundColor(.secondary)
   }

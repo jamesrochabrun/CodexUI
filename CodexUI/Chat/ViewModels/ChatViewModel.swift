@@ -217,8 +217,8 @@ public final class ChatViewModel {
       options.jsonEvents = !hasSession
       options.promptViaStdin = true
 
-      // Timeout to avoid indefinite hangs (5 minutes for complex queries)
-      options.timeout = 300
+      // Timeout to avoid indefinite hangs (10,000 seconds for complex queries)
+      options.timeout = 10_000
 
       // Profile and changeDirectory only on first turn (resume rejects these flags)
       if !hasSession {

@@ -28,13 +28,19 @@ struct ChatInputView: View {
   @FocusState private var isFocused: Bool
   @Binding var triggerFocus: Bool
 
-  private let placeholder = "Type @ to search files... (Enter to send, Shift+Enter for new line)"
+  private let placeholder = "Type @ to search files, $ to search skills... (Enter to send, Shift+Enter for new line)"
 
   // File search properties
   @State private var showingFileSearch = false
   @State private var fileSearchRange: NSRange? = nil
   @State private var fileSearchViewModel: FileSearchViewModel? = nil
   @State private var isUpdatingFileSearch = false
+
+  // Skill search properties
+  @State private var showingSkillSearch = false
+  @State private var skillSearchRange: NSRange? = nil
+  @State private var skillSearchViewModel: SkillSearchViewModel? = nil
+  @State private var isUpdatingSkillSearch = false
 
   // Attachment properties
   @State private var attachments: [FileAttachment] = []
@@ -83,31 +89,53 @@ struct ChatInputView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      // File search UI - shown when @ is typed
-      if showingFileSearch {
-        if let viewModel = fileSearchViewModel {
-          InlineFileSearchView(
-            viewModel: viewModel,
-            onSelect: { result in
-              insertFileReference(result)
-            },
-            onDismiss: {
-              dismissFileSearch()
-            }
-          )
-          .background(Color(NSColor.controlBackgroundColor))
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-          .overlay(
-            RoundedRectangle(cornerRadius: 12)
-              .stroke(Color(NSColor.separatorColor), lineWidth: 1)
-          )
-          .padding(.horizontal, 12)
-          .padding(.bottom, 8)
-          .transition(.asymmetric(
-            insertion: .move(edge: .bottom).combined(with: .opacity),
-            removal: .move(edge: .bottom).combined(with: .opacity)
-          ))
-        }
+      // Inline search UI - shown when @ or $ is typed
+      if showingFileSearch, let viewModel = fileSearchViewModel {
+        InlineSearchView(
+          viewModel: viewModel,
+          configuration: .fileSearch,
+          onSelect: { result in
+            insertFileReference(result)
+          },
+          onDismiss: {
+            dismissFileSearch()
+          }
+        )
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+          RoundedRectangle(cornerRadius: 12)
+            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+        )
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+        .transition(.asymmetric(
+          insertion: .move(edge: .bottom).combined(with: .opacity),
+          removal: .move(edge: .bottom).combined(with: .opacity)
+        ))
+      } else if showingSkillSearch, let viewModel = skillSearchViewModel {
+        InlineSearchView(
+          viewModel: viewModel,
+          configuration: .skillSearch,
+          onSelect: { result in
+            insertSkillReference(result)
+          },
+          onDismiss: {
+            dismissSkillSearch()
+          }
+        )
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+          RoundedRectangle(cornerRadius: 12)
+            .stroke(Color(NSColor.separatorColor), lineWidth: 1)
+        )
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+        .transition(.asymmetric(
+          insertion: .move(edge: .bottom).combined(with: .opacity),
+          removal: .move(edge: .bottom).combined(with: .opacity)
+        ))
       }
 
       // Main input area
@@ -144,6 +172,7 @@ struct ChatInputView: View {
       .padding(.horizontal, 12)
     }
     .animation(.easeInOut(duration: 0.2), value: showingFileSearch)
+    .animation(.easeInOut(duration: 0.2), value: showingSkillSearch)
     .animation(.easeInOut(duration: 0.2), value: contextManager.hasContext)
     .animation(.easeInOut(duration: 0.2), value: attachments.count)
     .animation(.easeInOut(duration: 0.2), value: xcodeContextManager?.codeSelections.count)
@@ -153,14 +182,20 @@ struct ChatInputView: View {
       if fileSearchViewModel == nil {
         fileSearchViewModel = FileSearchViewModel(projectPath: projectPath)
       }
+      // Initialize skill search view model
+      if skillSearchViewModel == nil {
+        skillSearchViewModel = SkillSearchViewModel(projectPath: projectPath)
+      }
       // Update project path if it changed
       if !projectPath.isEmpty {
         fileSearchViewModel?.updateProjectPath(projectPath)
+        skillSearchViewModel?.updateProjectPath(projectPath)
       }
     }
     .onChange(of: projectPath) { _, newValue in
       if !newValue.isEmpty {
         fileSearchViewModel?.updateProjectPath(newValue)
+        skillSearchViewModel?.updateProjectPath(newValue)
       }
     }
     .fileImporter(
@@ -400,10 +435,11 @@ extension ChatInputView {
         .onChange(of: text) { oldValue, newValue in
           // Simple check to avoid freezing
           if newValue.count > 1000 {
-            print("[ChatInputView] Text too long, skipping @ detection")
+            print("[ChatInputView] Text too long, skipping inline search detection")
             return
           }
           detectAtMention(oldText: oldValue, newText: newValue)
+          detectSkillMention(oldText: oldValue, newText: newValue)
         }
         .onKeyPress { key in
           handleKeyPress(key)
@@ -448,6 +484,25 @@ extension ChatInputView {
         return .handled
       case .upArrow:
         fileSearchViewModel?.selectPrevious()
+        return .handled
+      default:
+        return .ignored
+      }
+    } else if showingSkillSearch {
+      switch key.key {
+      case .return:
+        if let result = skillSearchViewModel?.getSelectedResult() {
+          insertSkillReference(result)
+        }
+        return .handled
+      case .escape:
+        dismissSkillSearch()
+        return .handled
+      case .downArrow:
+        skillSearchViewModel?.selectNext()
+        return .handled
+      case .upArrow:
+        skillSearchViewModel?.selectPrevious()
         return .handled
       default:
         return .ignored
@@ -701,6 +756,9 @@ extension ChatInputView {
     guard !isUpdatingFileSearch else {
       return
     }
+    guard !showingSkillSearch else {
+      return
+    }
 
     // If text was deleted and we're showing search, check if @ was deleted
     if showingFileSearch && newText.count < oldText.count {
@@ -708,7 +766,7 @@ extension ChatInputView {
       if let searchRange = fileSearchRange {
         let nsString = newText as NSString
         if searchRange.location >= nsString.length ||
-            (searchRange.location < nsString.length && nsString.character(at: searchRange.location) != 64) { // 64 is @
+            (searchRange.location < nsString.length && !isTriggerPresent(in: newText, at: searchRange.location, trigger: "@")) {
           dismissFileSearch()
           return
         }
@@ -721,10 +779,11 @@ extension ChatInputView {
 
     if newCount > oldCount {
       // Find the position of the newly typed @
-      if let atIndex = findNewAtPosition(oldText: oldText, newText: newText) {
+      if let atIndex = findNewTriggerPosition(oldText: oldText, newText: newText, trigger: "@") {
         // Start file search
         fileSearchRange = NSRange(location: atIndex, length: 1)
         showingFileSearch = true
+        dismissSkillSearch()
         fileSearchViewModel?.startSearch(query: "")
       }
     } else if showingFileSearch && !newText.isEmpty {
@@ -736,8 +795,8 @@ extension ChatInputView {
     }
   }
 
-  /// Find position of newly typed @ character
-  private func findNewAtPosition(oldText: String, newText: String) -> Int? {
+  /// Find position of newly typed trigger character
+  private func findNewTriggerPosition(oldText: String, newText: String, trigger: Character) -> Int? {
     let oldChars = Array(oldText)
     let newChars = Array(newText)
 
@@ -748,11 +807,19 @@ extension ChatInputView {
     }
 
     // Check if @ was inserted at position i
-    if i < newChars.count && newChars[i] == "@" {
+    if i < newChars.count && newChars[i] == trigger {
       return i
     }
 
     return nil
+  }
+
+  private func isTriggerPresent(in text: String, at location: Int, trigger: Character) -> Bool {
+    guard let scalar = trigger.unicodeScalars.first?.value else { return false }
+    let nsString = text as NSString
+    guard location >= 0, location < nsString.length else { return false }
+    let scalarValue = UInt16(truncatingIfNeeded: scalar)
+    return nsString.character(at: location) == scalarValue
   }
 
   /// Update file search query based on text after @
@@ -829,5 +896,111 @@ extension ChatInputView {
     showingFileSearch = false
     fileSearchRange = nil
     fileSearchViewModel?.clearSearch()
+  }
+}
+
+// MARK: - Skill Search
+
+extension ChatInputView {
+
+  /// Detect $ mention in text and trigger skill search
+  private func detectSkillMention(oldText: String, newText: String) {
+    // Prevent recursive updates
+    guard !isUpdatingSkillSearch else {
+      return
+    }
+    guard !showingFileSearch else {
+      return
+    }
+
+    // If text was deleted and we're showing search, check if $ was deleted
+    if showingSkillSearch && newText.count < oldText.count {
+      if let searchRange = skillSearchRange {
+        let nsString = newText as NSString
+        if searchRange.location >= nsString.length ||
+            (searchRange.location < nsString.length && !isTriggerPresent(in: newText, at: searchRange.location, trigger: "$")) {
+          dismissSkillSearch()
+          return
+        }
+      }
+    }
+
+    // Check if $ was just typed
+    let oldCount = oldText.filter { $0 == "$" }.count
+    let newCount = newText.filter { $0 == "$" }.count
+
+    if newCount > oldCount {
+      if let dollarIndex = findNewTriggerPosition(oldText: oldText, newText: newText, trigger: "$") {
+        skillSearchRange = NSRange(location: dollarIndex, length: 1)
+        showingSkillSearch = true
+        dismissFileSearch()
+        skillSearchViewModel?.startSearch(query: "")
+      }
+    } else if showingSkillSearch && !newText.isEmpty {
+      updateSkillSearchQuery()
+    } else if newText.isEmpty && showingSkillSearch {
+      dismissSkillSearch()
+    }
+  }
+
+  /// Update skill search query based on text after $
+  private func updateSkillSearchQuery() {
+    guard let searchRange = skillSearchRange else { return }
+
+    let nsString = text as NSString
+    guard searchRange.location < nsString.length else {
+      dismissSkillSearch()
+      return
+    }
+
+    let dollarLocation = searchRange.location
+    var queryEnd = dollarLocation + 1
+    while queryEnd < nsString.length {
+      let char = nsString.character(at: queryEnd)
+      if char == 32 || char == 10 { // space or newline
+        break
+      }
+      queryEnd += 1
+    }
+
+    let queryStart = dollarLocation + 1
+    let queryLength = queryEnd - queryStart
+
+    if queryStart <= nsString.length && queryLength >= 0 && queryStart + queryLength <= nsString.length {
+      let query = nsString.substring(with: NSRange(location: queryStart, length: queryLength))
+      skillSearchViewModel?.searchQuery = query
+      skillSearchRange = NSRange(location: dollarLocation, length: queryEnd - dollarLocation)
+    }
+  }
+
+  /// Insert selected skill reference into text
+  private func insertSkillReference(_ result: SkillResult) {
+    guard let searchRange = skillSearchRange else { return }
+
+    let nsString = text as NSString
+    guard searchRange.location >= 0,
+          searchRange.location + searchRange.length <= nsString.length else {
+      dismissSkillSearch()
+      return
+    }
+
+    isUpdatingSkillSearch = true
+
+    let replacement = "$\(result.name) "
+    let newText = nsString.replacingCharacters(in: searchRange, with: replacement)
+    text = newText
+
+    dismissSkillSearch()
+
+    DispatchQueue.main.async {
+      self.isUpdatingSkillSearch = false
+    }
+  }
+
+  /// Dismiss skill search and clear state
+  private func dismissSkillSearch() {
+    showingSkillSearch = false
+    skillSearchRange = nil
+    skillSearchViewModel?.clearSearch()
   }
 }
