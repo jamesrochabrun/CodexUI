@@ -72,6 +72,13 @@ public final class ChatViewModel {
   private var currentTask: Task<Void, Never>?
   private var hasSession = false
 
+  /// Stores file content at end of each turn to use as baseline for next turn's diffs
+  /// Key: absolute file path, Value: file content after last turn
+  private var fileBaselines: [String: String] = [:]
+
+  /// Tracks which files were modified in the current turn (for updating baselines at turn end)
+  private var currentTurnModifiedFiles: Set<String> = []
+
   /// State for parsing stderr during resume sessions
   private enum StderrParseState {
     case idle
@@ -206,6 +213,8 @@ public final class ChatViewModel {
     var stdout = ""
     var stderr = ""
     var stderrParseState: StderrParseState = .idle
+    /// File path waiting for apply_patch confirmation before creating DiffToolEvent
+    var pendingDiffFilePath: String?
   }
 
   private func streamResponse(prompt: String, messageId: UUID) async {
@@ -315,7 +324,6 @@ public final class ChatViewModel {
 
             case ("item.completed", "file_change"):
               // Capture file_change events for diff rendering
-              // GitDiffView will use git to get original content, so we just need the path
               print("[Diff] file_change event received")
 
               // Handle CLI format with `changes` array
@@ -325,25 +333,44 @@ public final class ChatViewModel {
                   if let path = change.path {
                     print("[Diff] File changed: \(path) (kind: \(change.kind ?? "unknown"))")
 
-                    // Just capture the file path - GitDiffView handles content loading
+                    // Get baseline: stored from previous turn, or git HEAD for first turn
+                    let baseline = self.fileBaselines[path] ?? ""
+                    let useGitHead = baseline.isEmpty
+
+                    // Track this file as modified in current turn
+                    self.currentTurnModifiedFiles.insert(path)
+
                     let event = DiffToolEvent(
                       editToolRaw: "edit",
-                      toolParameters: ["file_path": path]
+                      toolParameters: [
+                        "file_path": path,
+                        "baseline_content": baseline,
+                        "use_git_head": useGitHead ? "true" : "false"
+                      ]
                     )
                     self.appendDiffEvent(messageId: messageId, event: event)
-                    print("[Diff] Added file_change event for: \(path)")
+                    print("[Diff] Added file_change event for: \(path) (useGitHead: \(useGitHead))")
                   }
                 }
               }
               // Legacy format with filePath
               else if let filePath = json.item?.filePath {
                 print("[Diff] Legacy format - filePath: \(filePath)")
+
+                let baseline = self.fileBaselines[filePath] ?? ""
+                let useGitHead = baseline.isEmpty
+                self.currentTurnModifiedFiles.insert(filePath)
+
                 let event = DiffToolEvent(
                   editToolRaw: "edit",
-                  toolParameters: ["file_path": filePath]
+                  toolParameters: [
+                    "file_path": filePath,
+                    "baseline_content": baseline,
+                    "use_git_head": useGitHead ? "true" : "false"
+                  ]
                 )
                 self.appendDiffEvent(messageId: messageId, event: event)
-                print("[Diff] Added legacy file_change event for: \(filePath)")
+                print("[Diff] Added legacy file_change event for: \(filePath) (useGitHead: \(useGitHead))")
               } else {
                 print("[Diff] file_change event has no path data")
               }
@@ -387,7 +414,7 @@ public final class ChatViewModel {
 
             // When in resume mode (no JSON events), parse stderr for display AND file changes
             if self.hasSession && !line.isEmpty {
-              if let displayLine = self.parseStderrLine(line, state: &buffer.stderrParseState, messageId: messageId) {
+              if let displayLine = self.parseStderrLine(line, state: &buffer.stderrParseState, messageId: messageId, buffer: buffer) {
                 buffer.stdout += displayLine + "\n"
                 self.updateAssistantMessage(id: messageId, content: buffer.stdout)
               }
@@ -415,6 +442,10 @@ public final class ChatViewModel {
 
         self.markMessageComplete(id: messageId)
         self.isLoading = false
+
+        // Update baselines for modified files at end of turn
+        // This ensures next turn compares against current state, not git HEAD
+        self.updateBaselinesAfterTurn()
       }
 
     } catch {
@@ -489,6 +520,19 @@ public final class ChatViewModel {
     }
   }
 
+  /// Updates baseline content for files modified in the current turn.
+  /// Called at the end of each turn to ensure next turn shows only its own changes.
+  private func updateBaselinesAfterTurn() {
+    for path in currentTurnModifiedFiles {
+      if let content = try? String(contentsOfFile: path, encoding: .utf8) {
+        fileBaselines[path] = content
+        print("[Diff] Updated baseline for: \(path) (\(content.count) chars)")
+      }
+    }
+    // Clear the set for next turn
+    currentTurnModifiedFiles.removeAll()
+  }
+
   private func friendlyMessage(for error: Error) -> String {
     if let codexError = error as? CodexExecError {
       return codexError.localizedDescription
@@ -558,11 +602,39 @@ public final class ChatViewModel {
   }
 
   /// Parse a stderr line and return terminal-formatted output if applicable
-  private func parseStderrLine(_ line: String, state: inout StderrParseState, messageId: UUID) -> String? {
+  private func parseStderrLine(_ line: String, state: inout StderrParseState, messageId: UUID, buffer: StreamBuffer) -> String? {
     let trimmed = line.trimmingCharacters(in: .whitespaces)
 
     // Skip CLI banner/metadata lines
     if shouldFilterLine(trimmed) { return nil }
+
+    // Check for apply_patch success - this means the file has been modified
+    if trimmed.contains("apply_patch") && trimmed.contains("exited 0") {
+      if let pendingPath = buffer.pendingDiffFilePath {
+        print("[Diff] apply_patch succeeded, creating diff event for: \(pendingPath)")
+
+        // Get baseline: stored from previous turn, or git HEAD for first turn
+        let baseline = self.fileBaselines[pendingPath] ?? ""
+        let useGitHead = baseline.isEmpty
+
+        // Track this file as modified in current turn
+        self.currentTurnModifiedFiles.insert(pendingPath)
+
+        let event = DiffToolEvent(
+          editToolRaw: "edit",
+          toolParameters: [
+            "file_path": pendingPath,
+            "baseline_content": baseline,
+            "use_git_head": useGitHead ? "true" : "false"
+          ]
+        )
+        self.appendDiffEvent(messageId: messageId, event: event)
+        print("[Diff] Added stderr file_change event after apply_patch (useGitHead: \(useGitHead))")
+
+        buffer.pendingDiffFilePath = nil
+      }
+      return nil
+    }
 
     // Check for file update marker (can appear in any state)
     if trimmed == "file update" || trimmed == "file update:" {
@@ -616,14 +688,11 @@ public final class ChatViewModel {
     case .awaitingFileChange:
       // Look for file path pattern: "M /path/to/file" or just "/path/to/file"
       if let filePath = extractFilePathFromStderr(trimmed) {
-        print("[Diff] Detected file change from stderr: \(filePath)")
+        print("[Diff] Detected file change from stderr, storing pending path: \(filePath)")
 
-        // Create diff event
-        let event = DiffToolEvent(
-          editToolRaw: "edit",
-          toolParameters: ["file_path": filePath]
-        )
-        self.appendDiffEvent(messageId: messageId, event: event)
+        // Store the path - we'll create the event when apply_patch succeeds
+        // This ensures we read the file AFTER it's been modified
+        buffer.pendingDiffFilePath = filePath
         state = .idle
         return nil
       }

@@ -207,6 +207,7 @@ final class WorkspaceWindowObserver: WindowObserver {
   }
 
   @XcodeInspectorActor
+  /// Updates the window state when the workspace changes.
   func updateStateWith(workspace: WorkspaceState? = nil) {
     let newState = WindowState(element: state.element, workspace: workspace)
     if newState != state {

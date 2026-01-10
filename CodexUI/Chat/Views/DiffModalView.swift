@@ -13,6 +13,8 @@ struct DiffModalView: View {
 
   let filePath: String
   let projectPath: String
+  let baselineContent: String
+  let useGitHead: Bool
   let onDismiss: () -> Void
 
   // MARK: - State
@@ -121,13 +123,23 @@ struct DiffModalView: View {
   // MARK: - Private Methods
 
   private func loadDiffContent() async {
-    print("[DiffModalView] Loading diff for: \(filePath)")
+    print("[DiffModalView] Loading diff for: \(filePath) (useGitHead: \(useGitHead))")
 
-    // Get original from git
-    let original = await GitDiffProvider.getOriginalContent(
-      filePath: filePath,
-      projectPath: projectPath
-    )
+    // Get baseline content
+    let original: String
+    if useGitHead {
+      // First turn: use git HEAD as baseline
+      let gitContent = await GitDiffProvider.getOriginalContent(
+        filePath: filePath,
+        projectPath: projectPath
+      )
+      original = gitContent ?? ""
+      print("[DiffModalView] Using git HEAD as baseline (\(original.count) chars)")
+    } else {
+      // Subsequent turns: use stored baseline from previous turn
+      original = baselineContent
+      print("[DiffModalView] Using stored baseline (\(original.count) chars)")
+    }
 
     // Get current from disk
     let current: String?
@@ -141,12 +153,8 @@ struct DiffModalView: View {
 
     await MainActor.run {
       if let currentContent = current {
-        self.oldContent = original ?? ""
+        self.oldContent = original
         self.newContent = currentContent
-
-        if original == nil {
-          print("[DiffModalView] No git history - treating as new file")
-        }
       } else {
         self.errorMessage = "Could not read file"
       }

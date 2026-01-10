@@ -255,9 +255,14 @@ public struct ChatScreen: View {
     }
     .sheet(item: $expandedDiff) { event in
       if let filePath = event.toolParameters["file_path"] {
+        let baselineContent = event.toolParameters["baseline_content"] ?? ""
+        let useGitHead = event.toolParameters["use_git_head"] == "true"
+
         DiffModalView(
           filePath: filePath,
           projectPath: viewModel.projectPath,
+          baselineContent: baselineContent,
+          useGitHead: useGitHead,
           onDismiss: {
             expandedDiff = nil
           }

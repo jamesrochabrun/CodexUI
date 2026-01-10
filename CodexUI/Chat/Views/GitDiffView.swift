@@ -6,7 +6,7 @@
 import SwiftUI
 import PierreDiffsSwift
 
-/// A diff view that uses git to get the original content for comparison
+/// A diff view that compares file content against a baseline
 struct GitDiffView: View {
 
   // MARK: - Properties
@@ -16,6 +16,12 @@ struct GitDiffView: View {
 
   /// Project root directory (git repo root)
   let projectPath: String
+
+  /// Baseline content from before this turn (empty if should use git HEAD)
+  let baselineContent: String
+
+  /// Whether to use git HEAD as baseline (true for first turn, false for subsequent turns)
+  let useGitHead: Bool
 
   /// Callback when expand button is pressed
   var onExpandRequest: (() -> Void)?
@@ -116,13 +122,23 @@ struct GitDiffView: View {
   // MARK: - Private Methods
 
   private func loadDiffContent() async {
-    print("[GitDiffView] Loading diff for: \(filePath)")
+    print("[GitDiffView] Loading diff for: \(filePath) (useGitHead: \(useGitHead))")
 
-    // Get original from git
-    let original = await GitDiffProvider.getOriginalContent(
-      filePath: filePath,
-      projectPath: projectPath
-    )
+    // Get baseline content
+    let original: String
+    if useGitHead {
+      // First turn: use git HEAD as baseline
+      let gitContent = await GitDiffProvider.getOriginalContent(
+        filePath: filePath,
+        projectPath: projectPath
+      )
+      original = gitContent ?? ""
+      print("[GitDiffView] Using git HEAD as baseline (\(original.count) chars)")
+    } else {
+      // Subsequent turns: use stored baseline from previous turn
+      original = baselineContent
+      print("[GitDiffView] Using stored baseline (\(original.count) chars)")
+    }
 
     // Get current from disk
     let current: String?
@@ -136,13 +152,8 @@ struct GitDiffView: View {
 
     await MainActor.run {
       if let currentContent = current {
-        // If no git original, this might be a new file
-        self.oldContent = original ?? ""
+        self.oldContent = original
         self.newContent = currentContent
-
-        if original == nil {
-          print("[GitDiffView] No git history - treating as new file")
-        }
       } else {
         self.errorMessage = "Could not read file"
       }

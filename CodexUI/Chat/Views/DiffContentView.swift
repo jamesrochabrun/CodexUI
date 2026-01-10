@@ -23,9 +23,14 @@ struct DiffContentView: View {
     VStack(alignment: .leading, spacing: 12) {
       ForEach(diffEvents) { event in
         if let filePath = event.toolParameters["file_path"] {
+          let baselineContent = event.toolParameters["baseline_content"] ?? ""
+          let useGitHead = event.toolParameters["use_git_head"] == "true"
+
           GitDiffView(
             filePath: filePath,
             projectPath: projectPath,
+            baselineContent: baselineContent,
+            useGitHead: useGitHead,
             onExpandRequest: {
               onExpandRequest?(event)
             }
@@ -37,7 +42,7 @@ struct DiffContentView: View {
             removal: .opacity
           ))
           .onAppear {
-            print("[DiffContentView] Rendering git diff for: \(filePath)")
+            print("[DiffContentView] Rendering diff for: \(filePath) (useGitHead: \(useGitHead))")
           }
         }
       }
