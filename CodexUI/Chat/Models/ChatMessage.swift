@@ -45,6 +45,9 @@ public struct ChatMessage: Identifiable, Equatable, Codable, Sendable {
   /// Attachments associated with the message
   public var attachments: [StoredAttachment]?
 
+  /// Diff tool events associated with this message (Edit/Write/MultiEdit)
+  public var diffEvents: [DiffToolEvent]?
+
   public init(
     id: UUID = UUID(),
     role: MessageRole,
@@ -52,7 +55,8 @@ public struct ChatMessage: Identifiable, Equatable, Codable, Sendable {
     timestamp: Date = Date(),
     isComplete: Bool = true,
     wasCancelled: Bool = false,
-    attachments: [StoredAttachment]? = nil
+    attachments: [StoredAttachment]? = nil,
+    diffEvents: [DiffToolEvent]? = nil
   ) {
     self.id = id
     self.role = role
@@ -61,6 +65,7 @@ public struct ChatMessage: Identifiable, Equatable, Codable, Sendable {
     self.isComplete = isComplete
     self.wasCancelled = wasCancelled
     self.attachments = attachments
+    self.diffEvents = diffEvents
   }
 }
 

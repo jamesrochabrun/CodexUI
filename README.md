@@ -82,6 +82,18 @@ Easy access to your Codex sessions, initiated in CodexUI
 
 <img width="550" height="444" alt="Image" src="https://github.com/user-attachments/assets/e3f48228-a650-4072-907c-066e8e346d15" />
 
+## Local Codex Configuration
+
+CodexUI reads local Codex CLI configuration from `~/.codex/` via `CodexConfigService`.
+
+**What it reads**
+- `config.toml`: `model` and `model_reasoning_effort`
+- `version.json`: `latest_version` (used as the displayed CLI version)
+- `auth.json`: `tokens.id_token` (JWT payload) for `email` and `chatgpt_plan_type`
+
+**When it updates**
+- `CodexConfigService` loads on app start and can be refreshed with `refresh()` to re-read the files.
+
 ## Context Management
 
 <img width="580" height="676" alt="Screenshot 2025-12-01 at 3 17 12 PM" src="https://github.com/user-attachments/assets/41733d75-2028-4b55-8824-f70ff05c2036" />

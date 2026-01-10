@@ -78,6 +78,7 @@ public final class ChatViewModel {
     case awaitingReasoning  // After "thinking" line
     case awaitingCommand    // After "exec" line
     case collectingOutput   // After command line, collecting output
+    case awaitingFileChange // After "file update" line
   }
 
   // MARK: - Initialization
@@ -215,6 +216,7 @@ public final class ChatViewModel {
 
       // JSON events only on first turn (resume rejects it)
       options.jsonEvents = !hasSession
+      print("[Diff] JSON events enabled: \(!hasSession) (hasSession: \(hasSession))")
       options.promptViaStdin = true
 
       // Timeout to avoid indefinite hangs (10,000 seconds for complex queries)
@@ -247,6 +249,27 @@ public final class ChatViewModel {
         Task { @MainActor in
           switch event {
           case .jsonEvent(let json):
+            // Log all events for debugging - detailed view
+            print("[Event] ==============================")
+            print("[Event] type: \(json.type)")
+            print("[Event] item.type: \(json.item?.type ?? "nil")")
+            print("[Event] item.id: \(json.item?.id ?? "nil")")
+            if let text = json.item?.text {
+              print("[Event] item.text: \(text.prefix(100))...")
+            }
+            if let filePath = json.item?.filePath {
+              print("[Event] item.filePath: \(filePath)")
+            }
+            if let diff = json.item?.diff {
+              print("[Event] item.diff (first 200 chars): \(diff.prefix(200))")
+            }
+            if let toolName = json.item?.toolName {
+              print("[Event] item.toolName: \(toolName)")
+            }
+            if let toolArgs = json.item?.toolArguments {
+              print("[Event] item.toolArguments keys: \(toolArgs.keys.joined(separator: ", "))")
+            }
+            print("[Event] ==============================")
 
             // Handle different event types based on (type, item.type)
             // Terminal-style prefixes: * reasoning, $ command, ✓/! status, ◆ assistant
@@ -290,6 +313,58 @@ public final class ChatViewModel {
                 self.updateCliSessionId(threadId)
               }
 
+            case ("item.completed", "file_change"):
+              // Capture file_change events for diff rendering
+              // GitDiffView will use git to get original content, so we just need the path
+              print("[Diff] file_change event received")
+
+              // Handle CLI format with `changes` array
+              if let changes = json.item?.changes, !changes.isEmpty {
+                print("[Diff] Found \(changes.count) file changes")
+                for change in changes {
+                  if let path = change.path {
+                    print("[Diff] File changed: \(path) (kind: \(change.kind ?? "unknown"))")
+
+                    // Just capture the file path - GitDiffView handles content loading
+                    let event = DiffToolEvent(
+                      editToolRaw: "edit",
+                      toolParameters: ["file_path": path]
+                    )
+                    self.appendDiffEvent(messageId: messageId, event: event)
+                    print("[Diff] Added file_change event for: \(path)")
+                  }
+                }
+              }
+              // Legacy format with filePath
+              else if let filePath = json.item?.filePath {
+                print("[Diff] Legacy format - filePath: \(filePath)")
+                let event = DiffToolEvent(
+                  editToolRaw: "edit",
+                  toolParameters: ["file_path": filePath]
+                )
+                self.appendDiffEvent(messageId: messageId, event: event)
+                print("[Diff] Added legacy file_change event for: \(filePath)")
+              } else {
+                print("[Diff] file_change event has no path data")
+              }
+
+            case ("item.completed", "mcp_tool_call"):
+              // Capture Edit/Write/MultiEdit tool calls for diff rendering
+              print("[Diff] mcp_tool_call event received")
+              print("[Diff] toolName: \(json.item?.toolName ?? "nil")")
+              if let toolName = json.item?.toolName,
+                 ["Edit", "Write", "MultiEdit"].contains(toolName) {
+                let params = self.extractToolParameters(from: json.item?.toolArguments)
+                let editToolRaw = self.mapToolNameToRaw(toolName)
+                print("[Diff] Extracted params: \(params.keys.joined(separator: ", "))")
+                let event = DiffToolEvent(
+                  editToolRaw: editToolRaw,
+                  toolParameters: params
+                )
+                self.appendDiffEvent(messageId: messageId, event: event)
+                print("[Diff] Added mcp_tool_call diff event for tool: \(toolName)")
+              }
+
             default:
               break
             }
@@ -310,9 +385,9 @@ public final class ChatViewModel {
               self.extractAndUpdateSessionId(from: line)
             }
 
-            // When in resume mode (no JSON events), parse stderr for display
+            // When in resume mode (no JSON events), parse stderr for display AND file changes
             if self.hasSession && !line.isEmpty {
-              if let displayLine = self.parseStderrLine(line, state: &buffer.stderrParseState) {
+              if let displayLine = self.parseStderrLine(line, state: &buffer.stderrParseState, messageId: messageId) {
                 buffer.stdout += displayLine + "\n"
                 self.updateAssistantMessage(id: messageId, content: buffer.stdout)
               }
@@ -376,6 +451,42 @@ public final class ChatViewModel {
   private func markMessageComplete(id: UUID) {
     guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
     messages[index].isComplete = true
+  }
+
+  // MARK: - Diff Event Helpers
+
+  /// Appends a diff event to the message with the given ID
+  private func appendDiffEvent(messageId: UUID, event: DiffToolEvent) {
+    guard let index = messages.firstIndex(where: { $0.id == messageId }) else { return }
+    if messages[index].diffEvents == nil {
+      messages[index].diffEvents = []
+    }
+    messages[index].diffEvents?.append(event)
+  }
+
+  /// Extracts tool parameters from AnyCodable dictionary to String dictionary
+  private func extractToolParameters(from args: [String: AnyCodable]?) -> [String: String] {
+    guard let args = args else { return [:] }
+    var result: [String: String] = [:]
+    for (key, value) in args {
+      if let stringValue = value.value as? String {
+        result[key] = stringValue
+      } else if let data = try? JSONSerialization.data(withJSONObject: value.value),
+                let jsonString = String(data: data, encoding: .utf8) {
+        result[key] = jsonString
+      }
+    }
+    return result
+  }
+
+  /// Maps tool name to raw string for EditTool enum
+  private func mapToolNameToRaw(_ name: String) -> String {
+    switch name {
+    case "Edit": return "edit"
+    case "Write": return "write"
+    case "MultiEdit": return "multiEdit"
+    default: return "edit"
+    }
   }
 
   private func friendlyMessage(for error: Error) -> String {
@@ -447,11 +558,17 @@ public final class ChatViewModel {
   }
 
   /// Parse a stderr line and return terminal-formatted output if applicable
-  private func parseStderrLine(_ line: String, state: inout StderrParseState) -> String? {
+  private func parseStderrLine(_ line: String, state: inout StderrParseState, messageId: UUID) -> String? {
     let trimmed = line.trimmingCharacters(in: .whitespaces)
 
     // Skip CLI banner/metadata lines
     if shouldFilterLine(trimmed) { return nil }
+
+    // Check for file update marker (can appear in any state)
+    if trimmed == "file update" || trimmed == "file update:" {
+      state = .awaitingFileChange
+      return nil
+    }
 
     // State machine for parsing
     switch state {
@@ -495,7 +612,53 @@ public final class ChatViewModel {
         return nil
       }
       return nil // Skip detailed command output
+
+    case .awaitingFileChange:
+      // Look for file path pattern: "M /path/to/file" or just "/path/to/file"
+      if let filePath = extractFilePathFromStderr(trimmed) {
+        print("[Diff] Detected file change from stderr: \(filePath)")
+
+        // Create diff event
+        let event = DiffToolEvent(
+          editToolRaw: "edit",
+          toolParameters: ["file_path": filePath]
+        )
+        self.appendDiffEvent(messageId: messageId, event: event)
+        state = .idle
+        return nil
+      }
+
+      // If line doesn't match file pattern, reset state
+      // But ignore diff content lines (@@, +, -)
+      if !trimmed.isEmpty && !trimmed.hasPrefix("@") && !trimmed.hasPrefix("+") && !trimmed.hasPrefix("-") {
+        state = .idle
+      }
+      return nil
     }
+  }
+
+  /// Extracts absolute file path from stderr line
+  /// Handles formats: "M /path/to/file", "A /path/to/file", "/path/to/file"
+  private func extractFilePathFromStderr(_ line: String) -> String? {
+    let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+    // Pattern 1: "M /path" or "A /path" or "D /path"
+    if trimmed.count > 2 {
+      let prefix = trimmed.prefix(2)
+      if prefix == "M " || prefix == "A " || prefix == "D " {
+        let path = String(trimmed.dropFirst(2))
+        if path.hasPrefix("/") && FileManager.default.fileExists(atPath: path) {
+          return path
+        }
+      }
+    }
+
+    // Pattern 2: Direct absolute path
+    if trimmed.hasPrefix("/") && FileManager.default.fileExists(atPath: trimmed) {
+      return trimmed
+    }
+
+    return nil
   }
 
   /// Extract command from stderr line and shorten it

@@ -7,6 +7,12 @@ final class WorkspaceWindowObserver: WindowObserver {
 
   // MARK: Lifecycle
 
+  /// Creates an observer for an Xcode workspace window and seeds initial workspace state.
+  /// - Parameters:
+  ///   - accessibilityService: Service used to query AX elements for editors and metadata.
+  ///   - processIdentifier: The PID for the owning Xcode process.
+  ///   - axNotifications: Stream of AX notifications to forward to child observers.
+  ///   - window: The AXUIElement representing the workspace window.
   init(
     accessibilityService: AccessibilityService,
     processIdentifier: Int32,
@@ -71,6 +77,7 @@ final class WorkspaceWindowObserver: WindowObserver {
   }
 
   @XcodeInspectorActor
+  /// Refreshes document/workspace URLs and keeps the focused editor in sync.
   func updateURLs() {
     let documentURL = Self.extractDocumentURL(from: window)
     let workspaceURL = state.workspace?.workspaceURL ?? Self.extractWorkspaceURL(from: window)
