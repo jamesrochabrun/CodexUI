@@ -1,5 +1,5 @@
 {
-  "originHash" : "b3fd8e056031833fa093f0d96c4778dc75f2f08d6197d180e893e95c37d46c61",
+  "originHash" : "953857c38e91c59960247f74e0b50ee50eaedb51ab8978d9c09d54f91ddc0978",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -17,15 +17,6 @@
       "state" : {
         "revision" : "43978f880c310bf3fab3d152c091ace393778f61",
         "version" : "1.0.9"
-      }
-    },
-    {
-      "identity" : "codexsdk",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jamesrochabrun/CodexSDK",
-      "state" : {
-        "revision" : "a2d9055da3c6f056da01770517f1e7b908ca6f53",
-        "version" : "1.0.3"
       }
     },
     {
@@ -53,6 +44,15 @@
       "state" : {
         "revision" : "1aef85578fdd4f9eaeeb8d53b7b4fc31bf08fe27",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "pierrediffsswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jamesrochabrun/PierreDiffsSwift",
+      "state" : {
+        "revision" : "95037c9cd24e33af149ed081387a68d5091f46d0",
+        "version" : "1.1.3"
       }
     },
     {

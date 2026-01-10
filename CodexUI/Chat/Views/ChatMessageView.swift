@@ -6,9 +6,13 @@
 import SwiftUI
 
 struct ChatMessageView: View {
-  
+
   let message: ChatMessage
-  
+  let projectPath: String
+
+  /// Callback when user wants to expand a diff to full screen
+  var onExpandDiff: ((DiffToolEvent) -> Void)?
+
   @Environment(\.colorScheme) private var colorScheme
   @State private var textFormatter: TextFormatter?
   @State private var containerWidth: CGFloat = 0
@@ -74,13 +78,25 @@ struct ChatMessageView: View {
   @ViewBuilder
   private func assistantMessageView(maxWidth: CGFloat) -> some View {
     let (statusLines, assistantContent) = splitContent(message.content)
-    
+
     VStack(alignment: .leading, spacing: 4) {
       // Terminal-style status lines (reasoning, commands, exit codes)
       if !statusLines.isEmpty {
         TerminalStatusView(lines: statusLines)
       }
-      
+
+      // Diff views for Edit/Write tool responses
+      if let diffEvents = message.diffEvents, !diffEvents.isEmpty {
+        let _ = print("[ChatMessageView] Message has \(diffEvents.count) diff events")
+        DiffContentView(
+          messageId: message.id,
+          diffEvents: diffEvents,
+          projectPath: projectPath,
+          onExpandRequest: onExpandDiff
+        )
+        .padding(.vertical, 8)
+      }
+
       // Assistant message with markdown rendering
       if !assistantContent.isEmpty {
         HStack(alignment: .top, spacing: 0) {
@@ -100,7 +116,7 @@ struct ChatMessageView: View {
           }
         }
       }
-      
+
       // Streaming cursor when no content yet
       if !message.isComplete && statusLines.isEmpty && assistantContent.isEmpty {
         BlinkingCursor()

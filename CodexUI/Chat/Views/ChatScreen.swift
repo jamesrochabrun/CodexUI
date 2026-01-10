@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import PierreDiffsSwift
 
 public struct ChatScreen: View {
 
@@ -16,6 +17,9 @@ public struct ChatScreen: View {
   @State private var showingSettings = false
   @State private var contextManager = ContextManager()
   @State private var xcodeContextManager = XcodeContextManager()
+
+  // Diff state management
+  @State private var expandedDiff: DiffToolEvent?
 
   // Session management state
   @State private var showSessionPicker = false
@@ -249,19 +253,42 @@ public struct ChatScreen: View {
     } message: {
       Text("Conversation cleared. Next message continues the same session.")
     }
+    .sheet(item: $expandedDiff) { event in
+      if let filePath = event.toolParameters["file_path"] {
+        let baselineContent = event.toolParameters["baseline_content"] ?? ""
+        let useGitHead = event.toolParameters["use_git_head"] == "true"
+
+        DiffModalView(
+          filePath: filePath,
+          projectPath: viewModel.projectPath,
+          baselineContent: baselineContent,
+          useGitHead: useGitHead,
+          onDismiss: {
+            expandedDiff = nil
+          }
+        )
+        .frame(minWidth: 900, minHeight: 700)
+      }
+    }
   }
-  
+
   private var messagesListView: some View {
     ScrollViewReader { scrollView in
       List {
         welcomeView
           .listRowSeparator(.hidden)
-        
+
         ForEach(viewModel.messages) { message in
-          ChatMessageView(message: message)
-            .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets())
-            .id(message.id)
+          ChatMessageView(
+            message: message,
+            projectPath: viewModel.projectPath,
+            onExpandDiff: { event in
+              expandedDiff = event
+            }
+          )
+          .listRowSeparator(.hidden)
+          .listRowInsets(EdgeInsets())
+          .id(message.id)
         }
       }
       .listStyle(.plain)

@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7B1E059A2F11DB6F00193225 /* PierreDiffsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B1E05992F11DB6F00193225 /* PierreDiffsSwift */; };
+		7B21DE1C2F11B61300DF764D /* PierreDiffsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B21DE1B2F11B61300DF764D /* PierreDiffsSwift */; };
 		7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7B305E632ED44753002F5F5F /* CodexSDK */; };
+		7B53743C2F103764008CCCFE /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7B53743B2F103764008CCCFE /* CodexSDK */; };
 		7B5F86EF2EDC291A00565978 /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = 7B5F86EE2EDC291A00565978 /* SQLite */; };
 		7B7ADC562ED5762700ADC068 /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC552ED5762700ADC068 /* Down */; };
 		7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7B7ADC582ED5765400ADC068 /* HighlightSwift */; };
 		7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */; };
-		7BB481AD2EDE40FB00DFE849 /* CodexSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB481AC2EDE40FB00DFE849 /* CodexSDK */; };
 		7BB484692EDE65A900DFE849 /* CodeWhisper in Frameworks */ = {isa = PBXBuildFile; productRef = 7BB484682EDE65A900DFE849 /* CodeWhisper */; };
 /* End PBXBuildFile section */
 
@@ -62,12 +64,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B21DE1C2F11B61300DF764D /* PierreDiffsSwift in Frameworks */,
 				7B5F86EF2EDC291A00565978 /* SQLite in Frameworks */,
+				7B1E059A2F11DB6F00193225 /* PierreDiffsSwift in Frameworks */,
 				7B7ADC592ED5765400ADC068 /* HighlightSwift in Frameworks */,
 				7BB47F6B2EDD625600DFE849 /* KeyboardShortcuts in Frameworks */,
 				7B7ADC562ED5762700ADC068 /* Down in Frameworks */,
+				7B53743C2F103764008CCCFE /* CodexSDK in Frameworks */,
 				7B305E642ED44753002F5F5F /* CodexSDK in Frameworks */,
-				7BB481AD2EDE40FB00DFE849 /* CodexSDK in Frameworks */,
 				7BB484692EDE65A900DFE849 /* CodeWhisper in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -134,8 +138,10 @@
 				7B7ADC582ED5765400ADC068 /* HighlightSwift */,
 				7B5F86EE2EDC291A00565978 /* SQLite */,
 				7BB47F6A2EDD625600DFE849 /* KeyboardShortcuts */,
-				7BB481AC2EDE40FB00DFE849 /* CodexSDK */,
 				7BB484682EDE65A900DFE849 /* CodeWhisper */,
+				7B53743B2F103764008CCCFE /* CodexSDK */,
+				7B21DE1B2F11B61300DF764D /* PierreDiffsSwift */,
+				7B1E05992F11DB6F00193225 /* PierreDiffsSwift */,
 			);
 			productName = CodexUI;
 			productReference = 7B305E382ED44715002F5F5F /* CodexUI.app */;
@@ -224,8 +230,9 @@
 				7B7ADC572ED5765400ADC068 /* XCRemoteSwiftPackageReference "highlightswift" */,
 				7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */,
 				7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
-				7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */,
 				7BB484672EDE65A900DFE849 /* XCRemoteSwiftPackageReference "CodeWhisper" */,
+				7B53743A2F103764008CCCFE /* XCLocalSwiftPackageReference "../CodexSDK" */,
+				7B1E05982F11DB6F00193225 /* XCRemoteSwiftPackageReference "PierreDiffsSwift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7B305E392ED44715002F5F5F /* Products */;
@@ -650,7 +657,22 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		7B53743A2F103764008CCCFE /* XCLocalSwiftPackageReference "../CodexSDK" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../CodexSDK;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
+		7B1E05982F11DB6F00193225 /* XCRemoteSwiftPackageReference "PierreDiffsSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jamesrochabrun/PierreDiffsSwift";
+			requirement = {
+				kind = exactVersion;
+				version = 1.1.3;
+			};
+		};
 		7B5F86ED2EDC291A00565978 /* XCRemoteSwiftPackageReference "SQLite" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/stephencelis/SQLite.swift";
@@ -683,14 +705,6 @@
 				minimumVersion = 2.4.0;
 			};
 		};
-		7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/jamesrochabrun/CodexSDK";
-			requirement = {
-				kind = exactVersion;
-				version = 1.0.3;
-			};
-		};
 		7BB484672EDE65A900DFE849 /* XCRemoteSwiftPackageReference "CodeWhisper" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jamesrochabrun/CodeWhisper";
@@ -702,7 +716,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7B1E05992F11DB6F00193225 /* PierreDiffsSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B1E05982F11DB6F00193225 /* XCRemoteSwiftPackageReference "PierreDiffsSwift" */;
+			productName = PierreDiffsSwift;
+		};
+		7B21DE1B2F11B61300DF764D /* PierreDiffsSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PierreDiffsSwift;
+		};
 		7B305E632ED44753002F5F5F /* CodexSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CodexSDK;
+		};
+		7B53743B2F103764008CCCFE /* CodexSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CodexSDK;
 		};
@@ -725,11 +752,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7BB47F692EDD625600DFE849 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
-		};
-		7BB481AC2EDE40FB00DFE849 /* CodexSDK */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7BB481AB2EDE40FA00DFE849 /* XCRemoteSwiftPackageReference "CodexSDK" */;
-			productName = CodexSDK;
 		};
 		7BB484682EDE65A900DFE849 /* CodeWhisper */ = {
 			isa = XCSwiftPackageProductDependency;
